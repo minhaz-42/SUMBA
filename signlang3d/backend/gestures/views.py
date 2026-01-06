@@ -150,11 +150,17 @@ def gesture_edit(request, uuid):
 
 
 # API endpoint for saving gestures (called from WebSocket or direct POST)
-@login_required
 @require_POST
 def gesture_save_api(request):
     """Save a gesture sample via AJAX."""
     import json
+    
+    # Check authentication for AJAX requests
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'error': 'Authentication required',
+            'detail': 'Please log in to save gestures'
+        }, status=401)
     
     try:
         data = json.loads(request.body)

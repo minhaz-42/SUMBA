@@ -405,6 +405,7 @@
             try {
                 const response = await fetch('{% url "gesture_save_api" %}', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
@@ -419,6 +420,13 @@
                 });
                 
                 const data = await response.json();
+                
+                // Check for authentication error
+                if (response.status === 401) {
+                    alert('Please log in to save gestures. Redirecting to login...');
+                    window.location.href = '{% url "login" %}?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
                 
                 if (data.success) {
                     // Add to session list

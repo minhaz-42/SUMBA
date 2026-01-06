@@ -181,9 +181,21 @@ REST_FRAMEWORK = {
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:8000,http://127.0.0.1:8000'
+    'http://localhost:8000,http://127.0.0.1:8000,http://localhost:8001,http://127.0.0.1:8001'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Trusted Origins (required for Django 4.x)
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:8000,http://127.0.0.1:8000,http://localhost:8001,http://127.0.0.1:8001'
+).split(',')
+
+# Session and CSRF Cookie Settings
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # =============================================================================
 # ML / Research Configuration
