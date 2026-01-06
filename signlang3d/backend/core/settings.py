@@ -16,7 +16,16 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key-change-in-production')
+def get_secret_key():
+    """Get secret key from env or generate one for development."""
+    key = os.getenv('DJANGO_SECRET_KEY')
+    if key:
+        return key
+    # Generate a random key for development only
+    from django.core.management.utils import get_random_secret_key
+    return get_random_secret_key()
+
+SECRET_KEY = get_secret_key()
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 

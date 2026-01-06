@@ -20,7 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--with-superuser',
             action='store_true',
-            help='Create a superuser (admin/admin123)',
+            help='Create a superuser (uses DJANGO_SUPERUSER_PASSWORD env var)',
         )
         parser.add_argument(
             '--demo-data',
@@ -296,18 +296,20 @@ class Command(BaseCommand):
 
     def create_superuser(self):
         """Create a superuser for development."""
+        import os
         if User.objects.filter(username='admin').exists():
             self.stdout.write('  → Superuser: already exists (admin)')
             return
         
+        password = os.getenv('DJANGO_SUPERUSER_PASSWORD', 'changeme')
         user = User.objects.create_superuser(
-            username='admin',
-            email='admin@sumba.local',
-            password='admin123',
+            username=os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin'),
+            email=os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@sumba.local'),
+            password=password,
             role='admin',
             institution='SUMBA Development',
         )
-        self.stdout.write(self.style.SUCCESS('  → Superuser created: admin / admin123'))
+        self.stdout.write(self.style.SUCCESS('  → Superuser created (set DJANGO_SUPERUSER_PASSWORD env var)'))
 
     def create_demo_data(self):
         """Create demo datasets and sample data."""
