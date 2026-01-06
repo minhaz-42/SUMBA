@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}Training - SUMBA{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-4">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">Training</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Model Training</h1>
+            <p class="text-gray-600 mt-1">Train sign language translation models on your datasets</p>
+        </div>
+        <a href="{% url 'training_config' %}" 
+           class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2 text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Advanced Config
+        </a>
+    </div>
+
+    {% if not datasets %}
+    <!-- No Datasets Warning -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-amber-900 mb-1">No datasets available</h3>
+                <p class="text-amber-800 text-sm mb-3">You need to create a dataset with gesture samples before training a model.</p>
+                <a href="{% url 'dataset_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Create Dataset
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Quick Start Training -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold">Start New Training</h2>
+            <span class="text-sm text-gray-500">All fields with * are required</span>
+        </div>
+        
+        <form action="{% url 'start_training' %}" method="POST">
+            {% csrf_token %}
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Dataset *</label>
+                    <select name="dataset" required class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="">Select a dataset...</option>
+                        {% for dataset in datasets %}
+                        <option value="{{ dataset.uuid }}">{{ dataset.name }} ({{ dataset.total_samples }} samples)</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Choose the dataset to train on</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Model Architecture</label>
+                    <select name="model" class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="stgcn">🔷 ST-GCN (Recommended)</option>
+                        <option value="transformer">🔶 Motion Transformer</option>
+                        <option value="hybrid">⭐ Hybrid (Best Quality)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">ST-GCN is fastest, Hybrid is most accurate</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Training Epochs</label>
+                    <input type="number" name="epochs" value="10" min="1" max="100"
+                           class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    <p class="text-xs text-gray-500 mt-1">More epochs = better results (try 10-50)</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Batch Size</label>
+                    <select name="batch_size" class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="16">16 (Lower Memory)</option>
+                        <option value="32" selected>32 (Balanced)</option>
+                        <option value="64">64 (Faster)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Reduce if you run out of memory</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between pt-4 border-t">
+                <div class="text-sm text-gray-500">
+                    💡 Training typically takes 2-5 minutes per epoch
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                    </svg>
+                    Start Training
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Model Architecture Info -->
+    <div class="grid md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl p-5 border-2 border-transparent hover:border-blue-500 transition">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">🔷</span>
+                <h3 class="font-semibold">ST-GCN</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">Spatio-Temporal Graph Convolutional Network. Best for capturing spatial relationships between joints.</p>
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+                <span>⚡ Fast</span>
+                <span>💾 ~32MB</span>
+                <span>🎯 Good accuracy</span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-5 border-2 border-transparent hover:border-amber-500 transition">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">🔶</span>
+                <h3 class="font-semibold">Motion Transformer</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">Attention-based architecture for modeling long-range temporal dependencies in sign sequences.</p>
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+                <span>⏱️ Moderate</span>
+                <span>💾 ~45MB</span>
+                <span>🎯 High accuracy</span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-5 border-2 border-transparent hover:border-purple-500 transition">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">⭐</span>
+                <h3 class="font-semibold">Hybrid</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">Combines ST-GCN for spatial features with Transformer for temporal modeling. Best quality.</p>
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+                <span>🐢 Slower</span>
+                <span>💾 ~68MB</span>
+                <span>🎯 Best accuracy</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Training Jobs -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Training Jobs</h2>
+            {% if jobs %}
+            <span class="text-sm text-gray-500">{{ jobs|length }} job{% if jobs|length != 1 %}s{% endif %}</span>
+            {% endif %}
+        </div>
+        
+        {% if jobs %}
+        <div class="divide-y">
+            {% for job in jobs %}
+            <div class="p-6 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="font-mono text-sm text-gray-600">{{ job.job_id }}</span>
+                            
+                            {% if job.status == 'running' %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1">
+                                <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Running
+                            </span>
+                            {% elif job.status == 'completed' %}
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">✓ Completed</span>
+                            {% elif job.status == 'failed' %}
+                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">✗ Failed</span>
+                            {% else %}
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">Pending</span>
+                            {% endif %}
+                        </div>
+                        
+                        <p class="text-gray-700">
+                            <span class="font-medium">{{ job.dataset_name }}</span>
+                            <span class="text-gray-500 mx-2">•</span>
+                            {{ job.config.model|upper }}
+                            <span class="text-gray-500 mx-2">•</span>
+                            {{ job.total_epochs }} epochs
+                        </p>
+                        
+                        {% if job.status == 'running' %}
+                        <div class="mt-3">
+                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                <span>Epoch {{ job.current_epoch }}/{{ job.total_epochs }}</span>
+                                <span>{{ job.progress }}%</span>
+                            </div>
+                            <div class="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 transition-all duration-500" 
+                                     style="width: {{ job.progress }}%"></div>
+                            </div>
+                            {% if job.train_loss %}
+                            <p class="text-xs text-gray-500 mt-1">
+                                Loss: {{ job.train_loss }} (train) / {{ job.val_loss }} (val)
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if job.status == 'completed' %}
+                        <p class="text-sm text-gray-500 mt-2">
+                            Final Loss: {{ job.train_loss }} (train) / {{ job.val_loss }} (val)
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <a href="{% url 'training_job' job.job_id %}" 
+                           class="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                            View Details
+                        </a>
+                        {% if job.status == 'running' %}
+                        <form action="{% url 'cancel_training' job.job_id %}" method="POST" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50">
+                                Cancel
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No training jobs yet</h3>
+            <p class="text-gray-600">Start your first training job using the form above.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if jobs %}
+<script>
+// Auto-refresh page if any job is running
+const hasRunningJobs = {{ jobs|length }} > 0 && 
+    [{% for job in jobs %}{% if job.status == 'running' %}true,{% endif %}{% endfor %}].length > 0;
+
+if (hasRunningJobs) {
+    setTimeout(() => window.location.reload(), 5000);
+}
+</script>
+{% endif %}
+{% endblock %}

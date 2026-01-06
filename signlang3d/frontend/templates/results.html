@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation Results - SUMBA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1',
+                        'primary-dark': '#4f46e5',
+                        'secondary': '#10b981',
+                        'accent': '#f59e0b',
+                        'dark': '#1e1b4b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-dark">SUMBA</span>
+                </a>
+                <div class="flex items-center space-x-4">
+                    <a href="/demo/" class="px-4 py-2 text-gray-600 hover:text-primary transition">New Translation</a>
+                    <a href="/dashboard/" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition">Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+            <a href="/dashboard/" class="hover:text-primary">Dashboard</a>
+            <span>/</span>
+            <a href="/dashboard/results/" class="hover:text-primary">Results</a>
+            <span>/</span>
+            <span class="text-gray-900">Result #12345</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Translation Result</h1>
+                <div class="flex items-center gap-3 text-sm text-gray-500">
+                    <span>Request ID: #12345</span>
+                    <span>•</span>
+                    <span>Processed: Jan 15, 2026, 2:30 PM</span>
+                    <span>•</span>
+                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded">Completed</span>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export
+                </button>
+                <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                    </svg>
+                    Share
+                </button>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Translation Output -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Translation</h2>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                94.2% confidence
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="text-3xl">🇺🇸</span>
+                            <span class="text-gray-400">→</span>
+                            <span class="text-3xl">🇬🇧</span>
+                        </div>
+                        <p class="text-2xl font-medium text-gray-900 mb-4">
+                            "Hello, nice to meet you. How are you doing today?"
+                        </p>
+                        <div class="flex items-center gap-3">
+                            <button class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                                </svg>
+                                Copy
+                            </button>
+                            <button class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                                </svg>
+                                Read Aloud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Visualization -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold">Input Skeleton Sequence</h2>
+                    </div>
+                    <div class="p-4">
+                        <div class="relative">
+                            <canvas id="skeleton-playback" class="w-full h-64 bg-gray-900 rounded-xl"></canvas>
+                            <div class="absolute bottom-4 left-4 right-4 flex items-center gap-4">
+                                <button id="btn-play" class="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition shadow-lg">
+                                    <svg class="w-5 h-5 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"></path>
+                                    </svg>
+                                </button>
+                                <div class="flex-1 bg-white/20 rounded-full h-2">
+                                    <div id="playback-progress" class="bg-white rounded-full h-2 w-0"></div>
+                                </div>
+                                <span class="text-white text-sm font-mono">0:00 / 4:23</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Frame Timeline -->
+                        <div class="mt-4 overflow-x-auto">
+                            <div class="flex gap-1 min-w-max">
+                                <!-- Placeholder for frame thumbnails -->
+                                <div class="flex gap-1" id="frame-timeline">
+                                    <!-- Dynamic frames will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternative Translations -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold">Alternative Translations (Beam Search)</h2>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <span class="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-medium">1</span>
+                                <p class="text-gray-900">"Hello, nice to meet you. How are you doing today?"</p>
+                            </div>
+                            <span class="text-sm text-gray-500 font-mono">-0.043</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <span class="w-8 h-8 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center font-medium">2</span>
+                                <p class="text-gray-600">"Hello, pleased to meet you. How are you today?"</p>
+                            </div>
+                            <span class="text-sm text-gray-500 font-mono">-0.156</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <span class="w-8 h-8 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center font-medium">3</span>
+                                <p class="text-gray-600">"Hi, nice meeting you. How do you do?"</p>
+                            </div>
+                            <span class="text-sm text-gray-500 font-mono">-0.234</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <span class="w-8 h-8 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center font-medium">4</span>
+                                <p class="text-gray-600">"Hello, glad to meet you. How's your day going?"</p>
+                            </div>
+                            <span class="text-sm text-gray-500 font-mono">-0.312</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attention Visualization -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold">Cross-Attention Visualization</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left py-2 px-3 font-medium text-gray-500">Token</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F1-10</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F11-20</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F21-30</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F31-40</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F41-50</th>
+                                        <th class="text-center py-2 px-1 font-mono text-gray-400 text-xs">F51-60</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">Hello</td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.9"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.7"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.2"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.05"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">nice</td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.3"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.8"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.5"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.05"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">to</td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.2"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.6"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.8"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.2"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">meet</td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.05"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.4"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.9"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.6"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.2"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">you</td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.05"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.1"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.2"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.5"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.9"></div></td>
+                                        <td class="text-center"><div class="w-8 h-8 mx-auto rounded bg-primary" style="opacity: 0.4"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4">
+                            Heatmap showing which input frames (F) the model attended to when generating each output token.
+                            Darker colors indicate higher attention weights.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Inference Details -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Inference Details</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Model</span>
+                            <span class="font-medium">Hybrid (ST-GCN + Trans)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Input Language</span>
+                            <span class="font-medium">ASL</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Output Language</span>
+                            <span class="font-medium">English</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Total Latency</span>
+                            <span class="font-mono font-medium text-primary">234ms</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Encode Time</span>
+                            <span class="font-mono text-gray-500">89ms</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Decode Time</span>
+                            <span class="font-mono text-gray-500">145ms</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Input Frames</span>
+                            <span class="font-mono font-medium">132</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Output Tokens</span>
+                            <span class="font-mono font-medium">12</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="text-gray-600">Beam Width</span>
+                            <span class="font-mono font-medium">4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Metadata -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Input Metadata</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Sample ID</span>
+                            <span class="font-mono text-sm">#GST-00456</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Duration</span>
+                            <span class="font-mono">4.4s</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Frame Rate</span>
+                            <span class="font-mono">30 fps</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Hands Detected</span>
+                            <span class="font-medium">2 (Both)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="text-gray-600">Joints per Hand</span>
+                            <span class="font-mono">21</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quality Metrics -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quality Metrics</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Confidence</span>
+                                <span class="font-medium">94.2%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 rounded-full h-2" style="width: 94.2%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Skeleton Quality</span>
+                                <span class="font-medium">87%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-500 rounded-full h-2" style="width: 87%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Frame Completeness</span>
+                                <span class="font-medium">100%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary rounded-full h-2" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-6 border border-primary/20">
+                    <h3 class="text-lg font-semibold mb-4">Actions</h3>
+                    <div class="space-y-3">
+                        <button class="w-full py-3 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Re-run Inference
+                        </button>
+                        <button class="w-full py-3 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export as JSON
+                        </button>
+                        <button class="w-full py-3 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+                            </svg>
+                            View Video Overlay
+                        </button>
+                        <button class="w-full py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Add to Dataset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize frame timeline
+        const frameTimeline = document.getElementById('frame-timeline');
+        for (let i = 0; i < 132; i++) {
+            const frame = document.createElement('div');
+            frame.className = 'w-2 h-8 bg-gray-300 rounded-sm hover:bg-primary transition cursor-pointer';
+            frame.title = `Frame ${i + 1}`;
+            frameTimeline.appendChild(frame);
+        }
+
+        // Skeleton playback canvas
+        const canvas = document.getElementById('skeleton-playback');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            drawPlaceholder();
+        }
+        
+        function drawPlaceholder() {
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click play to view skeleton animation', canvas.width / 2, canvas.height / 2);
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Play button
+        let isPlaying = false;
+        document.getElementById('btn-play').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                // Animate progress bar
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 0.5;
+                    document.getElementById('playback-progress').style.width = `${progress}%`;
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        isPlaying = false;
+                    }
+                }, 22); // ~45fps animation
+            }
+        });
+    </script>
+</body>
+</html>

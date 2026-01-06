@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Datasets - SUMBA{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-4">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">Datasets</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Datasets</h1>
+            <p class="text-gray-600 mt-1">Organize gesture samples for model training</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{% url 'dataset_upload' %}" 
+               class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Import
+            </a>
+            <a href="{% url 'dataset_create' %}" 
+               class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Dataset
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Box for new users -->
+    {% if not datasets %}
+    <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8 border border-purple-100">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">What is a Dataset?</h3>
+                <p class="text-gray-600 text-sm mb-4">
+                    A dataset is a collection of gesture samples organized for training machine learning models. 
+                    Each dataset can have train, validation, and test splits to ensure proper model evaluation.
+                </p>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <div class="flex items-center gap-2 text-gray-600">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span><strong>Train</strong> - Used for model learning</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-600">
+                        <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                        <span><strong>Validation</strong> - Used to tune parameters</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-600">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span><strong>Test</strong> - Used to measure final performance</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Filter -->
+    {% if datasets %}
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <form method="GET" class="flex items-center gap-4">
+            <label class="text-sm font-medium text-gray-700">Filter:</label>
+            <select name="status" onchange="this.form.submit()" 
+                    class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm">
+                <option value="">All Statuses</option>
+                <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>📝 Draft</option>
+                <option value="active" {% if current_status == 'active' %}selected{% endif %}>✅ Active</option>
+                <option value="archived" {% if current_status == 'archived' %}selected{% endif %}>📦 Archived</option>
+            </select>
+            {% if current_status %}
+            <a href="{% url 'datasets' %}" class="text-sm text-gray-500 hover:text-gray-700">Clear filter</a>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- Dataset Grid -->
+    {% if datasets %}
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for dataset in datasets %}
+        <a href="{% url 'dataset_detail' dataset.uuid %}" class="block bg-white rounded-xl shadow-sm border hover:shadow-lg hover:border-purple-300 transition card-hover">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-semibold text-lg text-gray-900">{{ dataset.name }}</h3>
+                    <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-mono">
+                        v{{ dataset.version }}
+                    </span>
+                </div>
+                
+                <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {{ dataset.description|default:"No description provided"|truncatewords:15 }}
+                </p>
+                
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold text-gray-900">{{ dataset.total_samples }}</div>
+                        <div class="text-xs text-gray-500">Samples</div>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold text-gray-900">{{ dataset.splits.count }}</div>
+                        <div class="text-xs text-gray-500">Splits</div>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold text-gray-900">{{ dataset.vocabulary_size }}</div>
+                        <div class="text-xs text-gray-500">Vocab</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <span class="px-2 py-1 {% if dataset.status == 'active' %}bg-green-100 text-green-700{% elif dataset.status == 'draft' %}bg-yellow-100 text-yellow-700{% else %}bg-gray-100 text-gray-700{% endif %} text-xs rounded-full">
+                        {{ dataset.get_status_display }}
+                    </span>
+                    <span class="text-xs text-gray-500">
+                        {{ dataset.created_at|date:"M d, Y" }}
+                    </span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+        <div class="w-20 h-20 mx-auto mb-6 bg-purple-100 rounded-full flex items-center justify-center">
+            <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Create Your First Dataset</h3>
+        <p class="text-gray-600 mb-6 max-w-md mx-auto">
+            Datasets organize your gesture samples for training. Start by creating a dataset, then add samples to it.
+        </p>
+        <div class="flex items-center justify-center gap-4">
+            <a href="{% url 'dataset_create' %}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Create Dataset
+            </a>
+            <a href="{% url 'gesture_library' %}" 
+               class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                Browse Gestures First
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

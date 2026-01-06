@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Gesture - SUMBA{% endblock %}
+
+{% block head %}
+<style>
+    .recording { animation: recording-pulse 1s ease-in-out infinite; }
+    @keyframes recording-pulse { 
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
+        50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); } 
+    }
+    .hand-landmark { transition: all 0.1s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-6 fade-in">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <a href="{% url 'gesture_library' %}" class="text-gray-500 hover:text-gray-700">Gestures</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">Record</span>
+    </nav>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Camera Panel -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border fade-in">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Camera Feed
+                    </h2>
+                    <div id="status" class="flex items-center text-sm">
+                        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-400 mr-2"></span>
+                        <span id="status-text" class="text-gray-600">Ready</span>
+                    </div>
+                </div>
+                <div class="relative aspect-video bg-gray-900">
+                    <video id="video" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                    <canvas id="canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                    
+                    <!-- Recording indicator -->
+                    <div id="recording-indicator" class="hidden absolute top-4 left-4 flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl shadow-lg">
+                        <span class="w-3 h-3 rounded-full bg-white recording"></span>
+                        <span class="font-medium">Recording</span>
+                        <span id="frame-count" class="font-mono">0</span> frames
+                    </div>
+                    
+                    <!-- Gesture detection box -->
+                    <div id="gesture-box" class="hidden absolute inset-4 border-2 border-dashed border-green-400 rounded-xl pointer-events-none">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full shadow">
+                            ✓ Hand Detected
+                        </div>
+                    </div>
+                    
+                    <!-- No camera placeholder -->
+                    <div id="camera-placeholder" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                        <div class="text-center">
+                            <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <p class="text-gray-400 mb-2">Camera not active</p>
+                            <p class="text-gray-500 text-sm">Click "Start Camera" below to begin</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="p-4 flex items-center gap-4 bg-gray-50">
+                    <button id="btn-start" class="flex-1 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Start Camera
+                    </button>
+                    <button id="btn-record" disabled class="flex-1 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-white"></span>
+                        Start Recording
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 fade-in">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-blue-900 mb-3">Recording Instructions</h3>
+                        <ol class="list-decimal list-inside space-y-2 text-blue-800 text-sm">
+                            <li>Click <strong>"Start Camera"</strong> to enable your webcam</li>
+                            <li>Position your hands clearly in front of the camera</li>
+                            <li>Fill in the gesture details on the right (gloss & translation)</li>
+                            <li>Click <strong>"Start Recording"</strong> and perform your gesture</li>
+                            <li>Click <strong>"Stop Recording"</strong> when done</li>
+                            <li>Review the stats and click <strong>"Save Gesture"</strong></li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Gesture Details -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                    Gesture Details
+                </h3>
+                <form id="gesture-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Sign Language</label>
+                        <select id="language" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            {% for lang in languages %}
+                            <option value="{{ lang.code }}">{{ lang.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Gloss (Sign Label) *</label>
+                        <input type="text" id="gloss" required placeholder="e.g., HELLO, THANK-YOU"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Use UPPERCASE, hyphens for multi-word signs</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">English Translation *</label>
+                        <textarea id="transcript" required rows="2" placeholder="What does this sign mean?"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Recording Stats -->
+            <div id="stats-panel" class="hidden bg-white rounded-2xl shadow-sm p-6 border fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Recording Stats
+                </h3>
+                <dl class="grid grid-cols-2 gap-3">
+                    <div class="text-center p-4 bg-purple-50 rounded-xl">
+                        <dt class="text-xs text-purple-600 font-medium uppercase">Frames</dt>
+                        <dd id="stat-frames" class="text-2xl font-bold text-purple-700 mt-1">0</dd>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-xl">
+                        <dt class="text-xs text-blue-600 font-medium uppercase">Duration</dt>
+                        <dd id="stat-duration" class="text-2xl font-bold text-blue-700 mt-1">0s</dd>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-xl">
+                        <dt class="text-xs text-green-600 font-medium uppercase">FPS</dt>
+                        <dd id="stat-fps" class="text-2xl font-bold text-green-700 mt-1">30</dd>
+                    </div>
+                    <div class="text-center p-4 bg-amber-50 rounded-xl">
+                        <dt class="text-xs text-amber-600 font-medium uppercase">Hands</dt>
+                        <dd id="stat-hands" class="text-2xl font-bold text-amber-700 mt-1">0</dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <!-- Save Button -->
+            <button id="btn-save" disabled 
+                    class="w-full py-4 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-200 disabled:shadow-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save Gesture
+            </button>
+            
+            <!-- Recent Recordings -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    This Session
+                </h3>
+                <div id="recent-list" class="space-y-2 text-sm text-gray-500">
+                    <div class="text-center py-4">
+                        <svg class="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        <p>No recordings yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    
+    <script>
+        // Elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const btnStart = document.getElementById('btn-start');
+        const btnRecord = document.getElementById('btn-record');
+        const btnSave = document.getElementById('btn-save');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const gestureBox = document.getElementById('gesture-box');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const statsPanel = document.getElementById('stats-panel');
+        const recentList = document.getElementById('recent-list');
+        
+        // State
+        let hands = null;
+        let camera = null;
+        let isRecording = false;
+        let frameBuffer = [];
+        let recordingStartTime = null;
+        let sessionRecordings = [];
+        
+        // CSRF token
+        const csrfToken = '{{ csrf_token }}';
+        
+        // Initialize MediaPipe Hands
+        function initMediaPipe() {
+            hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+            
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onResults);
+        }
+        
+        // Handle hand detection results
+        function onResults(results) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                gestureBox.classList.remove('hidden');
+                document.getElementById('stat-hands').textContent = results.multiHandLandmarks.length;
+                
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#10b981', lineWidth: 2});
+                    drawLandmarks(ctx, landmarks, {color: '#6366f1', lineWidth: 1, radius: 4});
+                }
+                
+                // Record frame if recording
+                if (isRecording) {
+                    const frameData = {
+                        timestamp: Date.now() - recordingStartTime,
+                        hands: results.multiHandLandmarks.map((landmarks, idx) => ({
+                            handedness: results.multiHandedness[idx]?.label || 'Unknown',
+                            landmarks: landmarks.map(lm => ({
+                                x: lm.x,
+                                y: lm.y,
+                                z: lm.z
+                            }))
+                        }))
+                    };
+                    
+                    frameBuffer.push(frameData);
+                    updateStats();
+                }
+            } else {
+                gestureBox.classList.add('hidden');
+                document.getElementById('stat-hands').textContent = '0';
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('stat-frames').textContent = frameBuffer.length;
+            document.getElementById('frame-count').textContent = frameBuffer.length;
+            
+            const duration = (Date.now() - recordingStartTime) / 1000;
+            document.getElementById('stat-duration').textContent = duration.toFixed(1) + 's';
+            
+            if (duration > 0) {
+                document.getElementById('stat-fps').textContent = Math.round(frameBuffer.length / duration);
+            }
+        }
+        
+        function updateStatus(status, text) {
+            statusDot.className = 'w-2.5 h-2.5 rounded-full mr-2';
+            switch (status) {
+                case 'ready':
+                    statusDot.classList.add('bg-gray-400');
+                    break;
+                case 'camera':
+                    statusDot.classList.add('bg-green-500');
+                    break;
+                case 'recording':
+                    statusDot.classList.add('bg-red-500', 'animate-pulse');
+                    break;
+            }
+            statusText.textContent = text;
+        }
+        
+        // Start camera
+        btnStart.addEventListener('click', async () => {
+            try {
+                initMediaPipe();
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+                
+                video.srcObject = stream;
+                
+                camera = new Camera(video, {
+                    onFrame: async () => {
+                        await hands.send({ image: video });
+                    },
+                    width: 640,
+                    height: 480
+                });
+                camera.start();
+                
+                btnStart.textContent = 'Camera Active';
+                btnStart.disabled = true;
+                btnStart.classList.replace('bg-purple-600', 'bg-gray-400');
+                btnRecord.disabled = false;
+                
+                updateStatus('camera', 'Camera Ready');
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Failed to access camera: ' + error.message);
+            }
+        });
+        
+        // Toggle recording
+        btnRecord.addEventListener('click', () => {
+            if (!isRecording) {
+                // Start recording
+                isRecording = true;
+                frameBuffer = [];
+                recordingStartTime = Date.now();
+                
+                btnRecord.textContent = '⏹ Stop Recording';
+                btnRecord.classList.replace('bg-red-500', 'bg-gray-800');
+                recordingIndicator.classList.remove('hidden');
+                statsPanel.classList.remove('hidden');
+                btnSave.disabled = true;
+                
+                updateStatus('recording', 'Recording...');
+            } else {
+                // Stop recording
+                isRecording = false;
+                
+                btnRecord.textContent = '🔴 Start Recording';
+                btnRecord.classList.replace('bg-gray-800', 'bg-red-500');
+                recordingIndicator.classList.add('hidden');
+                
+                if (frameBuffer.length > 0) {
+                    btnSave.disabled = false;
+                    updateStatus('camera', `Recorded ${frameBuffer.length} frames`);
+                } else {
+                    updateStatus('camera', 'No frames captured');
+                }
+            }
+        });
+        
+        // Save gesture
+        btnSave.addEventListener('click', async () => {
+            const gloss = document.getElementById('gloss').value.trim();
+            const transcript = document.getElementById('transcript').value.trim();
+            const language = document.getElementById('language').value;
+            
+            if (!gloss || !transcript) {
+                alert('Please enter both gloss and transcript');
+                return;
+            }
+            
+            if (frameBuffer.length < 10) {
+                alert('Recording too short. Please record at least 10 frames.');
+                return;
+            }
+            
+            btnSave.disabled = true;
+            btnSave.textContent = 'Saving...';
+            
+            try {
+                const response = await fetch('{% url "gesture_save_api" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        language: language,
+                        gloss: gloss,
+                        transcript: transcript,
+                        fps: parseInt(document.getElementById('stat-fps').textContent) || 30,
+                        frames: frameBuffer
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add to session list
+                    sessionRecordings.push({
+                        uuid: data.uuid,
+                        gloss: gloss,
+                        frames: data.num_frames
+                    });
+                    updateRecentList();
+                    
+                    // Reset form
+                    frameBuffer = [];
+                    document.getElementById('gloss').value = '';
+                    document.getElementById('transcript').value = '';
+                    document.getElementById('stat-frames').textContent = '0';
+                    document.getElementById('stat-duration').textContent = '0s';
+                    
+                    btnSave.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Saved!';
+                    
+                    setTimeout(() => {
+                        btnSave.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Save Gesture';
+                        btnSave.disabled = true;
+                    }, 2000);
+                    
+                    updateStatus('camera', 'Gesture saved!');
+                } else {
+                    throw new Error(data.error || 'Save failed');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save: ' + error.message);
+                btnSave.disabled = false;
+                btnSave.textContent = 'Save Gesture';
+            }
+        });
+        
+        function updateRecentList() {
+            if (sessionRecordings.length === 0) {
+                recentList.innerHTML = '<div class="text-center py-4"><svg class="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><p>No recordings yet</p></div>';
+                return;
+            }
+            
+            recentList.innerHTML = sessionRecordings.map(rec => `
+                <a href="/gestures/${rec.uuid}/" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-purple-50 hover:border-purple-200 border transition group">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-900 truncate group-hover:text-purple-700">${rec.gloss}</p>
+                        <p class="text-xs text-gray-500">${rec.frames} frames</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            `).join('');
+        }
+        
+        // Show placeholder removal when camera starts
+        document.getElementById('btn-start').addEventListener('click', function() {
+            setTimeout(() => {
+                document.getElementById('camera-placeholder').classList.add('hidden');
+            }, 500);
+        }, { once: true });
+    </script>
+{% endblock %}

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Translation Demo - SUMBA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1',
+                        'primary-dark': '#4f46e5',
+                        'secondary': '#10b981',
+                        'accent': '#f59e0b',
+                        'dark': '#1e1b4b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .translating { animation: translating-pulse 1.5s ease-in-out infinite; }
+        @keyframes translating-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .word-appear { animation: word-fade 0.3s ease-out forwards; }
+        @keyframes word-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-dark">SUMBA</span>
+                </a>
+                <div class="flex items-center space-x-4">
+                    <span class="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm font-medium">Live Demo</span>
+                    <a href="/capture/" class="px-4 py-2 text-gray-600 hover:text-primary transition">Record Gesture</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Mode Selector -->
+        <div class="bg-white rounded-2xl shadow-lg p-4 mb-8">
+            <div class="flex flex-wrap gap-4 items-center justify-between">
+                <div class="flex gap-4">
+                    <button id="mode-live" class="px-6 py-3 bg-primary text-white font-medium rounded-xl transition">
+                        🎥 Live Camera
+                    </button>
+                    <button id="mode-upload" class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition">
+                        📁 Upload Sample
+                    </button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700">Model:</label>
+                    <select id="model-select" class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="stgcn">ST-GCN Encoder</option>
+                        <option value="transformer">Transformer Encoder</option>
+                        <option value="hybrid" selected>Hybrid (ST-GCN + Transformer)</option>
+                    </select>
+                    <label class="text-sm font-medium text-gray-700 ml-4">Language:</label>
+                    <select id="lang-select" class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="ASL" selected>ASL → English</option>
+                        <option value="BdSL">BdSL → Bengali</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- Input Panel -->
+            <div class="space-y-6">
+                <!-- Live Camera Mode -->
+                <div id="live-panel" class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Camera Input</h2>
+                        <div id="camera-status" class="flex items-center text-sm">
+                            <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
+                            <span class="text-gray-600">Not connected</span>
+                        </div>
+                    </div>
+                    <div class="relative aspect-video bg-gray-900">
+                        <video id="video-feed" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                        <canvas id="skeleton-overlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                        
+                        <!-- Gesture Detection Box -->
+                        <div id="gesture-box" class="hidden absolute inset-4 border-2 border-dashed border-green-400 rounded-xl pointer-events-none">
+                            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-0.5 rounded">
+                                Gesture Detected
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <button id="btn-start-camera" class="w-full py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition">
+                            Start Camera & Translation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Mode (Hidden by default) -->
+                <div id="upload-panel" class="hidden bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold">Upload Gesture Data</h2>
+                    </div>
+                    <div class="p-6">
+                        <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition cursor-pointer">
+                            <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <p class="text-gray-600 mb-2">Drag & drop a JSON skeleton file</p>
+                            <p class="text-sm text-gray-400">or click to browse</p>
+                            <input type="file" id="file-input" accept=".json" class="hidden">
+                        </div>
+                        
+                        <div id="file-info" class="hidden mt-4 p-4 bg-gray-50 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p id="file-name" class="font-medium text-gray-900">sample.json</p>
+                                        <p id="file-details" class="text-sm text-gray-500">150 frames • 2 hands</p>
+                                    </div>
+                                </div>
+                                <button id="btn-translate-file" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition">
+                                    Translate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div id="processing-status" class="hidden bg-white rounded-2xl shadow-lg p-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-primary translating" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900">Processing gesture...</p>
+                            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                <div id="progress-bar" class="bg-primary rounded-full h-2 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <span id="processing-step" class="text-sm text-gray-500">Encoding...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="space-y-6">
+                <!-- Translation Output -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Translation Output</h2>
+                        <div class="flex items-center gap-2">
+                            <span id="confidence-badge" class="hidden px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
+                                95% confidence
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="translation-output" class="min-h-32 text-2xl font-medium text-gray-900 mb-4">
+                            <span class="text-gray-400">Translation will appear here...</span>
+                        </div>
+                        
+                        <!-- Alternative translations -->
+                        <div id="alternatives" class="hidden border-t border-gray-100 pt-4">
+                            <p class="text-sm text-gray-500 mb-2">Alternative translations:</p>
+                            <div id="alt-list" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beam Search Visualization -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold">Beam Search Process</h2>
+                    </div>
+                    <div class="p-4">
+                        <div id="beam-viz" class="font-mono text-sm bg-gray-900 text-gray-100 rounded-xl p-4 max-h-64 overflow-y-auto">
+                            <div class="text-gray-500">
+                                &gt; Waiting for input...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inference Stats -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Inference Statistics</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <p class="text-sm text-gray-500">Latency</p>
+                            <p id="stat-latency" class="text-2xl font-bold text-primary">--</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <p class="text-sm text-gray-500">Tokens/sec</p>
+                            <p id="stat-tokens" class="text-2xl font-bold text-secondary">--</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <p class="text-sm text-gray-500">Input Frames</p>
+                            <p id="stat-frames" class="text-2xl font-bold text-accent">--</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <p class="text-sm text-gray-500">Output Length</p>
+                            <p id="stat-output" class="text-2xl font-bold text-gray-700">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback -->
+                <div class="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-6 border border-primary/10">
+                    <h3 class="text-lg font-semibold mb-4">Was this translation correct?</h3>
+                    <div class="flex gap-3">
+                        <button id="btn-correct" class="flex-1 py-3 bg-green-100 text-green-700 font-medium rounded-xl hover:bg-green-200 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Correct
+                        </button>
+                        <button id="btn-incorrect" class="flex-1 py-3 bg-red-100 text-red-700 font-medium rounded-xl hover:bg-red-200 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Incorrect
+                        </button>
+                    </div>
+                    <div id="correction-input" class="hidden mt-4">
+                        <textarea id="correct-translation" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none" placeholder="Enter the correct translation..."></textarea>
+                        <button id="btn-submit-correction" class="mt-2 w-full py-2 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition">
+                            Submit Correction
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script>
+        // State
+        let ws = null;
+        let hands = null;
+        let camera = null;
+        let isTranslating = false;
+        let frameBuffer = [];
+        let lastInferenceId = null;
+        const BUFFER_SIZE = 30; // Send every 30 frames
+        
+        // DOM Elements
+        const videoFeed = document.getElementById('video-feed');
+        const skeletonOverlay = document.getElementById('skeleton-overlay');
+        const gestureBox = document.getElementById('gesture-box');
+        const translationOutput = document.getElementById('translation-output');
+        const beamViz = document.getElementById('beam-viz');
+        const processingStatus = document.getElementById('processing-status');
+        const progressBar = document.getElementById('progress-bar');
+        const processingStep = document.getElementById('processing-step');
+        
+        // Mode switching
+        document.getElementById('mode-live').addEventListener('click', () => {
+            document.getElementById('mode-live').classList.replace('bg-gray-100', 'bg-primary');
+            document.getElementById('mode-live').classList.replace('text-gray-700', 'text-white');
+            document.getElementById('mode-upload').classList.replace('bg-primary', 'bg-gray-100');
+            document.getElementById('mode-upload').classList.replace('text-white', 'text-gray-700');
+            document.getElementById('live-panel').classList.remove('hidden');
+            document.getElementById('upload-panel').classList.add('hidden');
+        });
+        
+        document.getElementById('mode-upload').addEventListener('click', () => {
+            document.getElementById('mode-upload').classList.replace('bg-gray-100', 'bg-primary');
+            document.getElementById('mode-upload').classList.replace('text-gray-700', 'text-white');
+            document.getElementById('mode-live').classList.replace('bg-primary', 'bg-gray-100');
+            document.getElementById('mode-live').classList.replace('text-white', 'text-gray-700');
+            document.getElementById('upload-panel').classList.remove('hidden');
+            document.getElementById('live-panel').classList.add('hidden');
+        });
+        
+        // File upload handling
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        let uploadedData = null;
+        
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-primary/5');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-primary', 'bg-primary/5');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-primary/5');
+            handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+        
+        function handleFile(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    uploadedData = JSON.parse(e.target.result);
+                    document.getElementById('file-name').textContent = file.name;
+                    document.getElementById('file-details').textContent = 
+                        `${uploadedData.frames?.length || 0} frames • ${uploadedData.hands?.length || 2} hands`;
+                    document.getElementById('file-info').classList.remove('hidden');
+                } catch (err) {
+                    alert('Invalid JSON file');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        document.getElementById('btn-translate-file').addEventListener('click', () => {
+            if (uploadedData) {
+                translateGesture(uploadedData.frames || uploadedData);
+            }
+        });
+        
+        // Initialize MediaPipe Hands
+        function initMediaPipe() {
+            hands = new Hands({locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }});
+            
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onHandResults);
+        }
+        
+        // Handle hand detection results
+        let lastInferenceTime = 0;
+        const INFERENCE_COOLDOWN = 3000; // 3 seconds between inferences
+        let isInferenceInProgress = false;
+        
+        function onHandResults(results) {
+            const ctx = skeletonOverlay.getContext('2d');
+            skeletonOverlay.width = videoFeed.videoWidth || 640;
+            skeletonOverlay.height = videoFeed.videoHeight || 480;
+            
+            ctx.clearRect(0, 0, skeletonOverlay.width, skeletonOverlay.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                gestureBox.classList.remove('hidden');
+                
+                for (const landmarks of results.multiHandLandmarks) {
+                    drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#10b981', lineWidth: 2});
+                    drawLandmarks(ctx, landmarks, {color: '#6366f1', lineWidth: 1, radius: 4});
+                }
+                
+                // Buffer frames for translation
+                if (isTranslating && !isInferenceInProgress) {
+                    const frameData = {
+                        timestamp: Date.now(),
+                        hands: results.multiHandLandmarks.map((landmarks, idx) => ({
+                            handedness: results.multiHandedness[idx]?.label || 'Unknown',
+                            landmarks: landmarks.map(lm => ({
+                                x: lm.x,
+                                y: lm.y,
+                                z: lm.z
+                            }))
+                        }))
+                    };
+                    
+                    frameBuffer.push(frameData);
+                    
+                    // Send batch when buffer is full and cooldown has passed
+                    const now = Date.now();
+                    if (frameBuffer.length >= BUFFER_SIZE && (now - lastInferenceTime) >= INFERENCE_COOLDOWN) {
+                        isInferenceInProgress = true;
+                        lastInferenceTime = now;
+                        sendFramesForTranslation([...frameBuffer]);
+                        frameBuffer = [];
+                    } else if (frameBuffer.length >= BUFFER_SIZE * 2) {
+                        // Prevent buffer from growing too large
+                        frameBuffer = frameBuffer.slice(-BUFFER_SIZE);
+                    }
+                }
+            } else {
+                gestureBox.classList.add('hidden');
+                // Clear buffer when hands are not detected
+                if (frameBuffer.length > 0 && !isInferenceInProgress) {
+                    frameBuffer = [];
+                }
+            }
+        }
+        
+        // Start camera
+        const startBtn = document.getElementById('btn-start-camera');
+        let isCameraRunning = false;
+        let inferenceStartTime = null;
+        
+        startBtn.addEventListener('click', async () => {
+            if (isCameraRunning) {
+                // Stop camera and translation
+                stopCamera();
+                return;
+            }
+            
+            try {
+                initMediaPipe();
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+                
+                videoFeed.srcObject = stream;
+                
+                camera = new Camera(videoFeed, {
+                    onFrame: async () => {
+                        if (hands && isTranslating) {
+                            await hands.send({image: videoFeed});
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+                camera.start();
+                
+                // Connect WebSocket
+                connectWebSocket();
+                
+                isTranslating = true;
+                isCameraRunning = true;
+                
+                startBtn.textContent = 'Stop Translation';
+                startBtn.classList.remove('bg-primary', 'hover:bg-primary-dark');
+                startBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                
+                updateCameraStatus('connected', 'Translating');
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Failed to access camera. Please ensure camera permissions are granted.');
+            }
+        });
+        
+        function stopCamera() {
+            isTranslating = false;
+            isCameraRunning = false;
+            frameBuffer = [];
+            
+            // Stop camera
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+            
+            // Stop video stream
+            if (videoFeed.srcObject) {
+                videoFeed.srcObject.getTracks().forEach(track => track.stop());
+                videoFeed.srcObject = null;
+            }
+            
+            // Close WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            // Reset UI
+            startBtn.textContent = 'Start Camera & Translation';
+            startBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            startBtn.classList.add('bg-primary', 'hover:bg-primary-dark');
+            
+            updateCameraStatus('disconnected', 'Stopped');
+            gestureBox.classList.add('hidden');
+            
+            addBeamLog('Translation stopped');
+        }
+        
+        // Connect WebSocket
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/gesture/inference/`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                addBeamLog('Connected to inference server');
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateCameraStatus('disconnected', 'Disconnected');
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleInferenceResponse(data);
+            };
+        }
+        
+        // Update camera status
+        function updateCameraStatus(status, text) {
+            const statusEl = document.getElementById('camera-status');
+            const indicator = statusEl.querySelector('span:first-child');
+            const label = statusEl.querySelector('span:last-child');
+            
+            indicator.className = 'w-2 h-2 rounded-full mr-2';
+            
+            switch (status) {
+                case 'connected':
+                    indicator.classList.add('bg-green-500', 'animate-pulse');
+                    break;
+                default:
+                    indicator.classList.add('bg-gray-400');
+            }
+            
+            label.textContent = text;
+        }
+        
+        // Send frames for translation
+        function sendFramesForTranslation(frames) {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !isTranslating) return;
+            
+            const model = document.getElementById('model-select').value;
+            const language = document.getElementById('lang-select').value;
+            
+            const requestId = Date.now().toString();
+            lastInferenceId = requestId;
+            inferenceStartTime = Date.now();
+            
+            showProcessing(true);
+            addBeamLog(`Sending ${frames.length} frames for inference...`);
+            
+            ws.send(JSON.stringify({
+                type: 'inference',
+                request_id: requestId,
+                model: model,
+                language: language,
+                frames: frames
+            }));
+        }
+        
+        // Translate gesture (for uploaded files)
+        async function translateGesture(frames) {
+            const model = document.getElementById('model-select').value;
+            const language = document.getElementById('lang-select').value;
+            
+            showProcessing(true);
+            addBeamLog(`Processing ${frames.length} frames...`);
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('/api/inference/predict/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: model,
+                        language: language,
+                        frames: frames
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const latency = Date.now() - startTime;
+                
+                displayTranslation(data.translation, data.confidence, data.alternatives);
+                updateStats(latency, data.translation.split(' ').length, frames.length);
+                
+                showProcessing(false);
+                
+                addBeamLog(`Completed in ${latency}ms`);
+                if (data.beam_log) {
+                    data.beam_log.forEach(log => addBeamLog(log));
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                addBeamLog(`Error: ${error.message}`);
+                showProcessing(false);
+            }
+        }
+        
+        // Handle WebSocket inference response
+        function handleInferenceResponse(data) {
+            if (data.type === 'translation') {
+                const latency = inferenceStartTime ? Date.now() - inferenceStartTime : 500;
+                const tokens = data.translation.split(' ').length;
+                const frames = data.frames_processed || 30;
+                
+                displayTranslation(data.translation, data.confidence, data.alternatives);
+                updateStats(latency, tokens, frames);
+                showProcessing(false);
+                isInferenceInProgress = false;
+                
+                addBeamLog(`Translation: "${data.translation}"`);
+                
+                // Log beam search steps if provided
+                if (data.beam_log) {
+                    data.beam_log.forEach(log => addBeamLog(log));
+                }
+            } else if (data.type === 'connection_established') {
+                addBeamLog(data.message);
+            } else if (data.type === 'progress') {
+                updateProgress(data.step, data.progress);
+                addBeamLog(data.message);
+            } else if (data.type === 'beam_step') {
+                addBeamLog(`Beam ${data.beam_idx}: ${data.tokens.join(' ')} (${data.score.toFixed(4)})`);
+            } else if (data.type === 'error') {
+                addBeamLog(`Error: ${data.message}`);
+                showProcessing(false);
+                isInferenceInProgress = false;
+            }
+        }
+        
+        // Display translation
+        function displayTranslation(text, confidence, alternatives) {
+            translationOutput.innerHTML = '';
+            
+            const words = text.split(' ');
+            words.forEach((word, idx) => {
+                const span = document.createElement('span');
+                span.textContent = word + ' ';
+                span.className = 'word-appear';
+                span.style.animationDelay = `${idx * 0.1}s`;
+                translationOutput.appendChild(span);
+            });
+            
+            // Show confidence
+            if (confidence) {
+                const badge = document.getElementById('confidence-badge');
+                badge.textContent = `${Math.round(confidence * 100)}% confidence`;
+                badge.classList.remove('hidden');
+                
+                if (confidence >= 0.8) {
+                    badge.classList.replace('bg-yellow-100', 'bg-green-100');
+                    badge.classList.replace('text-yellow-700', 'text-green-700');
+                } else if (confidence >= 0.5) {
+                    badge.classList.replace('bg-green-100', 'bg-yellow-100');
+                    badge.classList.replace('text-green-700', 'text-yellow-700');
+                }
+            }
+            
+            // Show alternatives
+            if (alternatives && alternatives.length > 0) {
+                const altSection = document.getElementById('alternatives');
+                const altList = document.getElementById('alt-list');
+                altList.innerHTML = '';
+                
+                alternatives.forEach(alt => {
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center py-1 text-sm';
+                    div.innerHTML = `
+                        <span class="text-gray-600">${alt.text}</span>
+                        <span class="text-gray-400">${Math.round(alt.score * 100)}%</span>
+                    `;
+                    altList.appendChild(div);
+                });
+                
+                altSection.classList.remove('hidden');
+            }
+        }
+        
+        // Update stats
+        function updateStats(latency, tokens, frames) {
+            document.getElementById('stat-latency').textContent = `${latency}ms`;
+            const tokensPerSec = latency > 0 ? (tokens / (latency / 1000)).toFixed(1) : '0';
+            document.getElementById('stat-tokens').textContent = tokensPerSec;
+            document.getElementById('stat-frames').textContent = frames || 0;
+            document.getElementById('stat-output').textContent = `${tokens} tokens`;
+        }
+        
+        // Show/hide processing status
+        function showProcessing(show) {
+            if (show) {
+                processingStatus.classList.remove('hidden');
+            } else {
+                processingStatus.classList.add('hidden');
+            }
+        }
+        
+        // Update progress bar
+        function updateProgress(step, progress) {
+            progressBar.style.width = `${progress}%`;
+            processingStep.textContent = step;
+        }
+        
+        // Add log to beam visualization
+        function addBeamLog(message) {
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="text-gray-500">&gt;</span> ${message}`;
+            beamViz.appendChild(div);
+            beamViz.scrollTop = beamViz.scrollHeight;
+        }
+        
+        // Feedback handling
+        document.getElementById('btn-correct').addEventListener('click', async () => {
+            if (lastInferenceId) {
+                await submitFeedback(lastInferenceId, true, null);
+                showFeedbackSuccess();
+            }
+        });
+        
+        document.getElementById('btn-incorrect').addEventListener('click', () => {
+            document.getElementById('correction-input').classList.remove('hidden');
+        });
+        
+        document.getElementById('btn-submit-correction').addEventListener('click', async () => {
+            const correction = document.getElementById('correct-translation').value;
+            if (lastInferenceId && correction) {
+                await submitFeedback(lastInferenceId, false, correction);
+                document.getElementById('correction-input').classList.add('hidden');
+                document.getElementById('correct-translation').value = '';
+                showFeedbackSuccess();
+            }
+        });
+        
+        async function submitFeedback(requestId, isCorrect, correction) {
+            try {
+                await fetch('/api/inference/feedback/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        request_id: requestId,
+                        is_correct: isCorrect,
+                        correction: correction
+                    })
+                });
+            } catch (error) {
+                console.error('Feedback error:', error);
+            }
+        }
+        
+        function showFeedbackSuccess() {
+            const btnCorrect = document.getElementById('btn-correct');
+            const btnIncorrect = document.getElementById('btn-incorrect');
+            
+            btnCorrect.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Thank you!';
+            btnCorrect.disabled = true;
+            btnIncorrect.disabled = true;
+            
+            setTimeout(() => {
+                btnCorrect.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Correct';
+                btnCorrect.disabled = false;
+                btnIncorrect.disabled = false;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

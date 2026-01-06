@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+.venv/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+*.sqlite3
+media/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Checkpoints (large files)
+checkpoints/*.pt
+checkpoints/*.pth
+
+# Logs
+logs/*.log

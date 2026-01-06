@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUMBA - 3D Sign Language Translation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#7c3aed',
+                        'primary-dark': '#6d28d9',
+                        'secondary': '#06b6d4',
+                        'accent': '#f59e0b',
+                        'dark': '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); }
+        .float { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .card-hover:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .card-hover { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-dark">SUMBA</span>
+            </a>
+            <div class="flex items-center gap-4">
+                {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="px-4 py-2 text-gray-700 hover:text-primary font-medium">Dashboard</a>
+                <a href="{% url 'profile' %}" class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl">{{ user.username }}</a>
+                {% else %}
+                <a href="{% url 'login' %}" class="px-4 py-2 text-gray-700 hover:text-primary font-medium">Log In</a>
+                <a href="{% url 'signup' %}" class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl">Get Started</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-hero min-h-screen flex items-center pt-24 pb-16 relative overflow-hidden">
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl float"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary/20 rounded-full blur-3xl float" style="animation-delay:-3s"></div>
+        </div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div class="text-white">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm mb-8 border border-white/20">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        <span class="text-white/90">Research-Grade Platform</span>
+                    </div>
+                    <h1 class="text-5xl lg:text-7xl font-extrabold mb-6 leading-tight">
+                        Translate<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">Sign Language</span><br>
+                        in Real-Time
+                    </h1>
+                    <p class="text-xl text-gray-300 mb-10 max-w-lg">
+                        Capture 3D hand movements, train custom models, and translate sign language to text with state-of-the-art accuracy.
+                    </p>
+                    <div class="flex flex-wrap gap-4 mb-12">
+                        <a href="{% url 'gesture_capture' %}" class="group px-8 py-4 bg-white text-dark font-semibold rounded-xl hover:bg-gray-100 transition flex items-center gap-3 shadow-xl">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Start Recording
+                        </a>
+                        <a href="{% url 'demo' %}" class="px-8 py-4 bg-white/10 backdrop-blur text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"/>
+                            </svg>
+                            Watch Demo
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-3 gap-8">
+                        <div><div class="text-3xl font-bold text-white">8+</div><div class="text-gray-400 text-sm">Sign Languages</div></div>
+                        <div><div class="text-3xl font-bold text-white">21</div><div class="text-gray-400 text-sm">Hand Joints</div></div>
+                        <div><div class="text-3xl font-bold text-white">30fps</div><div class="text-gray-400 text-sm">Real-time</div></div>
+                    </div>
+                </div>
+                <div class="hidden lg:flex justify-center">
+                    <div class="relative bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20">
+                        <svg viewBox="0 0 280 380" class="w-72 h-auto">
+                            <defs><linearGradient id="jg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7c3aed"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs>
+                            <g fill="none" stroke="white" stroke-width="3" stroke-linecap="round">
+                                <circle cx="140" cy="340" r="12" fill="url(#jg)"/><line x1="140" y1="340" x2="140" y2="260" stroke-width="4"/><circle cx="140" cy="260" r="10" fill="url(#jg)"/>
+                                <line x1="140" y1="290" x2="85" y2="255"/><circle cx="85" cy="255" r="6" fill="#a78bfa"/><line x1="85" y1="255" x2="60" y2="210"/><circle cx="60" cy="210" r="6" fill="#a78bfa"/><line x1="60" y1="210" x2="45" y2="165"/><circle cx="45" cy="165" r="8" fill="#22d3ee"/>
+                                <line x1="140" y1="260" x2="105" y2="175"/><circle cx="105" cy="175" r="6" fill="#a78bfa"/><line x1="105" y1="175" x2="95" y2="110"/><circle cx="95" cy="110" r="6" fill="#a78bfa"/><line x1="95" y1="110" x2="90" y2="55"/><circle cx="90" cy="55" r="8" fill="#22d3ee"/>
+                                <line x1="140" y1="260" x2="140" y2="165"/><circle cx="140" cy="165" r="6" fill="#a78bfa"/><line x1="140" y1="165" x2="140" y2="90"/><circle cx="140" cy="90" r="6" fill="#a78bfa"/><line x1="140" y1="90" x2="140" y2="25"/><circle cx="140" cy="25" r="8" fill="#22d3ee"/>
+                                <line x1="140" y1="260" x2="175" y2="175"/><circle cx="175" cy="175" r="6" fill="#a78bfa"/><line x1="175" y1="175" x2="185" y2="110"/><circle cx="185" cy="110" r="6" fill="#a78bfa"/><line x1="185" y1="110" x2="190" y2="55"/><circle cx="190" cy="55" r="8" fill="#22d3ee"/>
+                                <line x1="140" y1="260" x2="205" y2="195"/><circle cx="205" cy="195" r="6" fill="#a78bfa"/><line x1="205" y1="195" x2="225" y2="145"/><circle cx="225" cy="145" r="6" fill="#a78bfa"/><line x1="225" y1="145" x2="238" y2="105"/><circle cx="238" cy="105" r="8" fill="#22d3ee"/>
+                            </g>
+                        </svg>
+                        <div class="absolute bottom-6 left-6 right-6 bg-black/40 backdrop-blur-sm rounded-xl p-4 text-white">
+                            <div class="flex items-center justify-between">
+                                <div><div class="text-xs text-gray-300">3D Skeleton</div><div class="text-sm font-semibold">21 joints × 3 coords</div></div>
+                                <div class="flex items-center gap-2 text-green-400"><span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span><span class="text-sm">Live</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start -->
+    <section class="py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Get Started in Minutes</h2>
+                <p class="text-xl text-gray-600">Three simple steps to build your sign language translation system.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="relative">
+                    <div class="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl flex items-center justify-center text-xl font-bold shadow-lg z-10">1</div>
+                    <div class="bg-white rounded-2xl p-8 pt-12 shadow-sm border border-gray-100 card-hover h-full">
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6">
+                            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Record Gestures</h3>
+                        <p class="text-gray-600 mb-6">Use your webcam to capture sign language gestures. Our system tracks 21 hand joints in 3D space at 30 fps.</p>
+                        <a href="{% url 'gesture_capture' %}" class="text-primary font-semibold hover:underline">Start Recording →</a>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-secondary to-cyan-600 text-white rounded-2xl flex items-center justify-center text-xl font-bold shadow-lg z-10">2</div>
+                    <div class="bg-white rounded-2xl p-8 pt-12 shadow-sm border border-gray-100 card-hover h-full">
+                        <div class="w-16 h-16 bg-cyan-100 rounded-2xl flex items-center justify-center mb-6">
+                            <svg class="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Build Datasets</h3>
+                        <p class="text-gray-600 mb-6">Organize your gestures into labeled datasets with train/validation/test splits for research.</p>
+                        <a href="{% url 'datasets' %}" class="text-secondary font-semibold hover:underline">Manage Datasets →</a>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl flex items-center justify-center text-xl font-bold shadow-lg z-10">3</div>
+                    <div class="bg-white rounded-2xl p-8 pt-12 shadow-sm border border-gray-100 card-hover h-full">
+                        <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6">
+                            <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Train Models</h3>
+                        <p class="text-gray-600 mb-6">Train ST-GCN or Transformer models on your data. Monitor progress and evaluate with metrics.</p>
+                        <a href="{% url 'training' %}" class="text-amber-600 font-semibold hover:underline">Start Training →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Powerful Features</h2>
+                <p class="text-xl text-gray-600">Everything you need for sign language translation research.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-white border border-purple-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Real-Time Capture</h3>
+                    <p class="text-gray-600">MediaPipe-powered hand tracking captures 21 joint positions at 30fps from your webcam.</p>
+                </div>
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-cyan-50 to-white border border-cyan-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-secondary to-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">3D Skeleton Data</h3>
+                    <p class="text-gray-600">Store X, Y, Z coordinates for every joint across time frames. Compact and efficient.</p>
+                </div>
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Multiple Models</h3>
+                    <p class="text-gray-600">Choose between ST-GCN, Transformer, or Hybrid architectures for your needs.</p>
+                </div>
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-green-50 to-white border border-green-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Validation Tools</h3>
+                    <p class="text-gray-600">Quality checks ensure your data meets research standards with real-time metrics.</p>
+                </div>
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-pink-50 to-white border border-pink-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Multi-Language</h3>
+                    <p class="text-gray-600">Support for ASL, BdSL, BSL, and more. Easily add new sign languages.</p>
+                </div>
+                <div class="p-8 rounded-2xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 card-hover">
+                    <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">REST API</h3>
+                    <p class="text-gray-600">Full API access for integration with external systems and applications.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Languages -->
+    <section class="py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Supported Languages</h2>
+                <p class="text-xl text-gray-600">Start with popular sign languages or add your own.</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇺🇸</div><h3 class="font-bold text-lg">ASL</h3><p class="text-gray-500 text-sm">American</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇧🇩</div><h3 class="font-bold text-lg">BdSL</h3><p class="text-gray-500 text-sm">Bangladeshi</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇬🇧</div><h3 class="font-bold text-lg">BSL</h3><p class="text-gray-500 text-sm">British</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇮🇳</div><h3 class="font-bold text-lg">ISL</h3><p class="text-gray-500 text-sm">Indian</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇯🇵</div><h3 class="font-bold text-lg">JSL</h3><p class="text-gray-500 text-sm">Japanese</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇨🇳</div><h3 class="font-bold text-lg">CSL</h3><p class="text-gray-500 text-sm">Chinese</p></div>
+                <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 card-hover"><div class="text-4xl mb-3">🇩🇪</div><h3 class="font-bold text-lg">DGS</h3><p class="text-gray-500 text-sm">German</p></div>
+                <div class="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-6 text-center border-2 border-dashed border-primary/30 card-hover"><div class="text-4xl mb-3">➕</div><h3 class="font-bold text-lg text-primary">Add More</h3><p class="text-gray-500 text-sm">Extensible</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-24 bg-gradient-to-r from-primary via-purple-600 to-secondary">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-4xl lg:text-5xl font-bold text-white mb-6">Ready to Get Started?</h2>
+            <p class="text-xl text-white/80 mb-10">Join researchers worldwide using SUMBA for sign language translation.</p>
+            <div class="flex justify-center gap-4 flex-wrap">
+                {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="px-8 py-4 bg-white text-primary font-semibold rounded-xl hover:bg-gray-100 transition shadow-xl">Go to Dashboard</a>
+                {% else %}
+                <a href="{% url 'signup' %}" class="px-8 py-4 bg-white text-primary font-semibold rounded-xl hover:bg-gray-100 transition shadow-xl">Create Free Account</a>
+                {% endif %}
+                <a href="{% url 'demo' %}" class="px-8 py-4 bg-white/20 text-white font-semibold rounded-xl border border-white/30 hover:bg-white/30 transition">Try Demo First</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-16">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
+                        </div>
+                        <span class="text-xl font-bold text-white">SUMBA</span>
+                    </div>
+                    <p class="text-sm">3D Sign Language Translation Platform for research.</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Platform</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{% url 'gesture_capture' %}" class="hover:text-white">Record Gestures</a></li>
+                        <li><a href="{% url 'gesture_library' %}" class="hover:text-white">Gesture Library</a></li>
+                        <li><a href="{% url 'datasets' %}" class="hover:text-white">Datasets</a></li>
+                        <li><a href="{% url 'training' %}" class="hover:text-white">Training</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white">API Reference</a></li>
+                        <li><a href="#" class="hover:text-white">Research Paper</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Account</h4>
+                    <ul class="space-y-2 text-sm">
+                        {% if user.is_authenticated %}
+                        <li><a href="{% url 'dashboard' %}" class="hover:text-white">Dashboard</a></li>
+                        <li><a href="{% url 'profile' %}" class="hover:text-white">Profile</a></li>
+                        <li><a href="{% url 'logout' %}" class="hover:text-white">Log Out</a></li>
+                        {% else %}
+                        <li><a href="{% url 'login' %}" class="hover:text-white">Log In</a></li>
+                        <li><a href="{% url 'signup' %}" class="hover:text-white">Sign Up</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-sm">
+                <p>© 2026 SUMBA Project. Built for research purposes.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

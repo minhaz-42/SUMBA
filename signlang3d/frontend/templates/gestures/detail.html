@@ -1,0 +1,673 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ sample.gloss|default:"Gesture Detail" }} - SUMBA{% endblock %}
+
+{% block head %}
+<style>
+    .skeleton-viewer {
+        position: relative;
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    }
+    .joint { transition: all 0.1s ease; }
+    .connection { stroke-linecap: round; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    .timeline-marker {
+        cursor: pointer;
+        transition: transform 0.15s ease;
+    }
+    .timeline-marker:hover {
+        transform: scale(1.5);
+    }
+    .tooltip-popup {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1f2937;
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+        z-index: 50;
+    }
+    .tooltip-trigger:hover .tooltip-popup {
+        opacity: 1;
+        visibility: visible;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-6 fade-in">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <a href="{% url 'gesture_library' %}" class="text-gray-500 hover:text-gray-700">Gesture Library</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">{{ sample.gloss|default:"Unlabeled Gesture" }}</span>
+    </nav>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 3D Skeleton Viewer -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+                <div class="skeleton-viewer aspect-video relative">
+                    <canvas id="skeleton-canvas" class="w-full h-full"></canvas>
+                    
+                    <!-- Playback Controls Overlay -->
+                    <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                        <!-- Timeline -->
+                        <div class="mb-3">
+                            <div class="relative h-2 bg-white/20 rounded-full overflow-hidden cursor-pointer" id="timeline">
+                                <div id="timeline-progress" class="absolute left-0 top-0 h-full bg-purple-500 transition-all duration-100"></div>
+                                <div id="timeline-handle" class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg cursor-grab" style="left: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Controls -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <button id="btn-prev" class="p-2 text-white/80 hover:text-white transition tooltip-trigger">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/>
+                                    </svg>
+                                    <span class="tooltip-popup">Previous Frame</span>
+                                </button>
+                                
+                                <button id="btn-play" class="p-3 bg-white text-purple-600 rounded-full hover:bg-gray-100 transition shadow-lg">
+                                    <svg id="icon-play" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                    <svg id="icon-pause" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M6 4h4v16H6zm8 0h4v16h-4z"/>
+                                    </svg>
+                                </button>
+                                
+                                <button id="btn-next" class="p-2 text-white/80 hover:text-white transition tooltip-trigger">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"/>
+                                    </svg>
+                                    <span class="tooltip-popup">Next Frame</span>
+                                </button>
+                                
+                                <div class="text-white text-sm ml-2 font-mono">
+                                    <span id="current-frame">0</span> / <span id="total-frames">{{ sample.num_frames }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <select id="playback-speed" class="bg-white/20 text-white text-sm rounded-lg px-2 py-1 border-0 focus:ring-2 focus:ring-purple-500">
+                                    <option value="0.25">0.25x</option>
+                                    <option value="0.5">0.5x</option>
+                                    <option value="1" selected>1x</option>
+                                    <option value="1.5">1.5x</option>
+                                    <option value="2">2x</option>
+                                </select>
+                                
+                                <button id="btn-loop" class="p-2 text-white/80 hover:text-white transition tooltip-trigger" data-active="true">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    <span class="tooltip-popup">Loop Playback</span>
+                                </button>
+                                
+                                <button id="btn-fullscreen" class="p-2 text-white/80 hover:text-white transition tooltip-trigger">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                                    </svg>
+                                    <span class="tooltip-popup">Fullscreen</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-gray-900/80 flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="w-12 h-12 text-purple-500 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-white">Loading gesture data...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- View Controls -->
+                <div class="p-4 border-t bg-gray-50 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-gray-600">View:</span>
+                        <button id="view-front" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg">Front</button>
+                        <button id="view-side" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">Side</button>
+                        <button id="view-top" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">Top</button>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" id="show-hands" checked class="rounded text-purple-600 focus:ring-purple-500">
+                            Hands
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" id="show-body" checked class="rounded text-purple-600 focus:ring-purple-500">
+                            Body
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" id="show-face" checked class="rounded text-purple-600 focus:ring-purple-500">
+                            Face
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Edit Gesture Info -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-semibold">Gesture Information</h2>
+                    {% if sample.uploaded_by == user %}
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Your Recording</span>
+                    {% endif %}
+                </div>
+                
+                <form method="POST" action="{% url 'gesture_edit' sample.uuid %}" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Gloss (Sign Label) *
+                            </label>
+                            <input type="text" name="gloss" value="{{ sample.gloss }}" required
+                                   class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                   placeholder="e.g., HELLO, THANK-YOU">
+                            <p class="text-xs text-gray-500 mt-1">Standard sign notation in UPPERCASE</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Sign Language
+                            </label>
+                            <select name="language" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                {% for lang in languages %}
+                                <option value="{{ lang.code }}" {% if sample.language.code == lang.code %}selected{% endif %}>
+                                    {{ lang.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            English Translation
+                        </label>
+                        <input type="text" name="transcript" value="{{ sample.transcript|default:'' }}"
+                               class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                               placeholder="e.g., Hello, how are you?">
+                        <p class="text-xs text-gray-500 mt-1">What does this sign mean in English?</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Notes
+                        </label>
+                        <textarea name="notes" rows="3"
+                                  class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                  placeholder="Any additional notes about this gesture...">{{ sample.notes|default:'' }}</textarea>
+                    </div>
+                    
+                    <!-- Validation Toggle -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div>
+                            <div class="font-medium text-gray-900">Mark as Validated</div>
+                            <p class="text-sm text-gray-500">Validated samples are ready for training</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_validated" class="sr-only peer" {% if sample.is_validated %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center justify-between pt-4 border-t">
+                        <button type="button" onclick="confirmDelete()" class="text-red-600 hover:text-red-700 text-sm">
+                            Delete Gesture
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Sample Stats -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4">Recording Details</h3>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">Status</span>
+                        {% if sample.is_validated %}
+                        <span class="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Validated
+                        </span>
+                        {% else %}
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">Pending Review</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">Total Frames</span>
+                        <span class="font-medium">{{ sample.num_frames }}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">Duration</span>
+                        <span class="font-medium">{{ sample.duration_ms|floatformat:0 }}ms</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">FPS</span>
+                        <span class="font-medium">{{ sample.fps|default:"30" }}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">Language</span>
+                        <span class="font-medium">{{ sample.language.code|upper }}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b">
+                        <span class="text-gray-500">Recorded</span>
+                        <span class="font-medium">{{ sample.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-gray-500">Recorded By</span>
+                        <span class="font-medium">{{ sample.uploaded_by.username }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Joint Quality -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4">Tracking Quality</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">Left Hand</span>
+                            <span class="text-green-600 font-medium">{{ sample.left_hand_quality|default:"95" }}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full" style="width: {{ sample.left_hand_quality|default:'95' }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">Right Hand</span>
+                            <span class="text-green-600 font-medium">{{ sample.right_hand_quality|default:"92" }}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full" style="width: {{ sample.right_hand_quality|default:'92' }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">Body Pose</span>
+                            <span class="text-blue-600 font-medium">{{ sample.body_quality|default:"88" }}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 rounded-full" style="width: {{ sample.body_quality|default:'88' }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">Face</span>
+                            <span class="text-purple-600 font-medium">{{ sample.face_quality|default:"90" }}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-500 rounded-full" style="width: {{ sample.face_quality|default:'90' }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-gray-500 mt-4">
+                    Quality score based on landmark detection confidence
+                </p>
+            </div>
+            
+            <!-- Add to Dataset -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4">Add to Dataset</h3>
+                
+                {% if datasets %}
+                <form method="POST" action="{% url 'add_sample_to_dataset' sample.uuid %}" class="space-y-4">
+                    {% csrf_token %}
+                    <select name="dataset" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500">
+                        <option value="">Select a dataset...</option>
+                        {% for dataset in datasets %}
+                        <option value="{{ dataset.uuid }}">{{ dataset.name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select name="split" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500">
+                        <option value="train">Training Set</option>
+                        <option value="val">Validation Set</option>
+                        <option value="test">Test Set</option>
+                    </select>
+                    
+                    <button type="submit" class="w-full px-4 py-3 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 font-medium transition">
+                        Add to Dataset
+                    </button>
+                </form>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-gray-500 text-sm mb-3">No datasets available</p>
+                    <a href="{% url 'dataset_create' %}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                        Create a Dataset →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+                <h3 class="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                
+                <div class="space-y-2">
+                    <a href="{% url 'gesture_download' sample.uuid %}" 
+                       class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span class="text-gray-700">Download JSON</span>
+                    </a>
+                    
+                    <a href="{% url 'gesture_capture' %}?copy_from={{ sample.uuid }}" 
+                       class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-gray-700">Record Similar</span>
+                    </a>
+                    
+                    <button onclick="shareGesture()" 
+                            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition w-full text-left">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        <span class="text-gray-700">Share Link</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-md mx-4 shadow-xl">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Delete Gesture?</h3>
+            <p class="text-gray-600 mb-6">This action cannot be undone. The gesture recording and all associated data will be permanently deleted.</p>
+            
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeDeleteModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <form method="POST" action="{% url 'gesture_delete' sample.uuid %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Skeleton Data
+const skeletonData = {{ sample.keypoints|safe|default:"[]" }};
+const totalFrames = {{ sample.num_frames|default:0 }};
+let currentFrame = 0;
+let isPlaying = false;
+let playbackSpeed = 1;
+let loopEnabled = true;
+let animationFrame = null;
+
+// DOM Elements
+const canvas = document.getElementById('skeleton-canvas');
+const ctx = canvas.getContext('2d');
+const loadingOverlay = document.getElementById('loading-overlay');
+const btnPlay = document.getElementById('btn-play');
+const iconPlay = document.getElementById('icon-play');
+const iconPause = document.getElementById('icon-pause');
+const timelineProgress = document.getElementById('timeline-progress');
+const timelineHandle = document.getElementById('timeline-handle');
+const currentFrameEl = document.getElementById('current-frame');
+
+// Initialize
+function init() {
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Hide loading after data loads
+    setTimeout(() => {
+        loadingOverlay.classList.add('hidden');
+        if (totalFrames > 0) {
+            drawFrame(0);
+        }
+    }, 500);
+    
+    // Set up controls
+    btnPlay.addEventListener('click', togglePlay);
+    document.getElementById('btn-prev').addEventListener('click', prevFrame);
+    document.getElementById('btn-next').addEventListener('click', nextFrame);
+    document.getElementById('btn-loop').addEventListener('click', toggleLoop);
+    document.getElementById('playback-speed').addEventListener('change', (e) => {
+        playbackSpeed = parseFloat(e.target.value);
+    });
+    
+    // Timeline scrubbing
+    const timeline = document.getElementById('timeline');
+    timeline.addEventListener('click', (e) => {
+        const rect = timeline.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        currentFrame = Math.floor(percent * totalFrames);
+        updateUI();
+        drawFrame(currentFrame);
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            togglePlay();
+        } else if (e.code === 'ArrowLeft') {
+            prevFrame();
+        } else if (e.code === 'ArrowRight') {
+            nextFrame();
+        }
+    });
+}
+
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    if (totalFrames > 0) drawFrame(currentFrame);
+}
+
+function drawFrame(frameIdx) {
+    if (!skeletonData || !skeletonData[frameIdx]) return;
+    
+    const frame = skeletonData[frameIdx];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw skeleton (simplified)
+    ctx.fillStyle = '#a855f7';
+    ctx.strokeStyle = '#8b5cf6';
+    ctx.lineWidth = 2;
+    
+    // Draw joints as circles
+    if (frame.pose) {
+        frame.pose.forEach(joint => {
+            const x = joint.x * canvas.width;
+            const y = joint.y * canvas.height;
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+    
+    if (frame.left_hand) {
+        ctx.fillStyle = '#22c55e';
+        frame.left_hand.forEach(joint => {
+            const x = joint.x * canvas.width;
+            const y = joint.y * canvas.height;
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+    
+    if (frame.right_hand) {
+        ctx.fillStyle = '#3b82f6';
+        frame.right_hand.forEach(joint => {
+            const x = joint.x * canvas.width;
+            const y = joint.y * canvas.height;
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+}
+
+function togglePlay() {
+    isPlaying = !isPlaying;
+    iconPlay.classList.toggle('hidden', isPlaying);
+    iconPause.classList.toggle('hidden', !isPlaying);
+    
+    if (isPlaying) {
+        animate();
+    } else {
+        cancelAnimationFrame(animationFrame);
+    }
+}
+
+function animate() {
+    if (!isPlaying) return;
+    
+    currentFrame++;
+    if (currentFrame >= totalFrames) {
+        if (loopEnabled) {
+            currentFrame = 0;
+        } else {
+            isPlaying = false;
+            iconPlay.classList.remove('hidden');
+            iconPause.classList.add('hidden');
+            return;
+        }
+    }
+    
+    drawFrame(currentFrame);
+    updateUI();
+    
+    const delay = 1000 / (30 * playbackSpeed);
+    setTimeout(() => {
+        animationFrame = requestAnimationFrame(animate);
+    }, delay);
+}
+
+function prevFrame() {
+    currentFrame = Math.max(0, currentFrame - 1);
+    drawFrame(currentFrame);
+    updateUI();
+}
+
+function nextFrame() {
+    currentFrame = Math.min(totalFrames - 1, currentFrame + 1);
+    drawFrame(currentFrame);
+    updateUI();
+}
+
+function toggleLoop() {
+    loopEnabled = !loopEnabled;
+    const btn = document.getElementById('btn-loop');
+    btn.classList.toggle('text-purple-400', loopEnabled);
+    btn.classList.toggle('text-white/80', !loopEnabled);
+}
+
+function updateUI() {
+    const progress = (currentFrame / totalFrames) * 100;
+    timelineProgress.style.width = progress + '%';
+    timelineHandle.style.left = progress + '%';
+    currentFrameEl.textContent = currentFrame;
+}
+
+// Modal functions
+function confirmDelete() {
+    document.getElementById('delete-modal').classList.remove('hidden');
+    document.getElementById('delete-modal').classList.add('flex');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+    document.getElementById('delete-modal').classList.remove('flex');
+}
+
+function shareGesture() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+    });
+}
+
+// View buttons
+document.getElementById('view-front').addEventListener('click', function() {
+    setActiveView(this);
+});
+document.getElementById('view-side').addEventListener('click', function() {
+    setActiveView(this);
+});
+document.getElementById('view-top').addEventListener('click', function() {
+    setActiveView(this);
+});
+
+function setActiveView(btn) {
+    document.querySelectorAll('#view-front, #view-side, #view-top').forEach(b => {
+        b.classList.remove('bg-purple-100', 'text-purple-700');
+        b.classList.add('bg-gray-100', 'text-gray-600');
+    });
+    btn.classList.remove('bg-gray-100', 'text-gray-600');
+    btn.classList.add('bg-purple-100', 'text-purple-700');
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

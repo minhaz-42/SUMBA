@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SUMBA{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1',
+                        'primary-dark': '#4f46e5',
+                        'secondary': '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* Tooltip */
+        .tooltip { position: relative; }
+        .tooltip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 0.75rem;
+            background: #1f2937;
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+        .tooltip:hover::after { opacity: 1; visibility: visible; }
+        /* Card hover */
+        .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        /* Skeleton loading */
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+        .skeleton { position: relative; overflow: hidden; background: #e5e7eb; }
+        .skeleton::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{% url 'landing' %}" class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">S</span>
+                        </div>
+                        <span class="font-bold text-xl text-gray-900">SUMBA</span>
+                    </a>
+                </div>
+                
+                <!-- Main Nav Links -->
+                <div class="hidden md:flex items-center gap-1">
+                    <a href="{% url 'demo' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium">
+                        Demo
+                    </a>
+                    <a href="{% url 'capture' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium">
+                        Capture
+                    </a>
+                    <a href="{% url 'gesture_library' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium">
+                        Gestures
+                    </a>
+                    <a href="{% url 'datasets' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium">
+                        Datasets
+                    </a>
+                    <a href="{% url 'training' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium">
+                        Training
+                    </a>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="flex items-center gap-2">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'profile' %}" 
+                       class="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 text-sm">
+                        {{ user.username }}
+                    </a>
+                    <a href="{% url 'logout' %}" 
+                       class="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
+                        Logout
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" 
+                       class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
+                        Login
+                    </a>
+                    <a href="{% url 'signup' %}" 
+                       class="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                        Sign Up
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="md:hidden border-t">
+            <div class="flex overflow-x-auto gap-1 px-2 py-2">
+                <a href="{% url 'demo' %}" class="px-3 py-1 text-sm text-gray-600 whitespace-nowrap">Demo</a>
+                <a href="{% url 'capture' %}" class="px-3 py-1 text-sm text-gray-600 whitespace-nowrap">Capture</a>
+                <a href="{% url 'gesture_library' %}" class="px-3 py-1 text-sm text-gray-600 whitespace-nowrap">Gestures</a>
+                <a href="{% url 'datasets' %}" class="px-3 py-1 text-sm text-gray-600 whitespace-nowrap">Datasets</a>
+                <a href="{% url 'training' %}" class="px-3 py-1 text-sm text-gray-600 whitespace-nowrap">Training</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 mt-4">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg mb-2 {% if message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-auto">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 bg-gradient-to-br from-purple-600 to-blue-500 rounded flex items-center justify-center">
+                        <span class="text-white font-bold text-xs">S</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">SUMBA</span>
+                    <span class="text-gray-400">•</span>
+                    <span class="text-gray-500 text-sm">3D Sign Language Translation</span>
+                </div>
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                    <a href="{% url 'dashboard' %}" class="hover:text-gray-700">Dashboard</a>
+                    <a href="#" class="hover:text-gray-700">Docs</a>
+                    <a href="#" class="hover:text-gray-700">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Global Scripts -->
+    <script>
+        // Dismiss messages after 5 seconds
+        document.querySelectorAll('[data-dismiss]').forEach(el => {
+            setTimeout(() => el.remove(), 5000);
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block title %}Training Job {{ job.job_id }} - SUMBA{% endblock %}
+
+{% block head %}
+<style>
+    @keyframes pulse-ring {
+        0% { transform: scale(0.9); opacity: 1; }
+        100% { transform: scale(1.3); opacity: 0; }
+    }
+    .pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
+    .log-line { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-6 fade-in">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <a href="{% url 'training' %}" class="text-gray-500 hover:text-gray-700">Training</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">Job Details</span>
+    </nav>
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 fade-in">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                <h1 class="text-2xl font-bold text-gray-900 font-mono">{{ job.job_id }}</h1>
+                
+                {% if job.status == 'running' %}
+                <span class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full flex items-center gap-2 text-sm font-medium">
+                    <span class="relative flex h-3 w-3">
+                        <span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    Training in Progress
+                </span>
+                {% elif job.status == 'completed' %}
+                <span class="px-3 py-1.5 bg-green-100 text-green-700 rounded-full flex items-center gap-2 text-sm font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Completed
+                </span>
+                {% elif job.status == 'failed' %}
+                <span class="px-3 py-1.5 bg-red-100 text-red-700 rounded-full flex items-center gap-2 text-sm font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Failed
+                </span>
+                {% else %}
+                <span class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Pending</span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600">Training on <span class="font-medium">{{ job.dataset_name }}</span></p>
+        </div>
+        
+        {% if job.status == 'running' %}
+        <form action="{% url 'cancel_training' job.job_id %}" method="POST" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 text-red-600 border border-red-300 rounded-xl hover:bg-red-50 flex items-center gap-2 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Cancel Training
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    
+    <!-- Progress Section -->
+    {% if job.status == 'running' %}
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border fade-in">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg">Training Progress</h2>
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                    <span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span class="text-sm text-gray-500">Live updating</span>
+            </div>
+        </div>
+        
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-600">Epoch <span id="currentEpoch" class="font-semibold">{{ job.current_epoch }}</span> of {{ job.total_epochs }}</span>
+                <span class="text-2xl font-bold text-purple-600" id="progressText">{{ job.progress }}%</span>
+            </div>
+            <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500 rounded-full" 
+                     id="progressBar" style="width: {{ job.progress }}%"></div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-gray-500 mb-1">Train Loss</div>
+                <div class="text-xl font-bold text-gray-900" id="trainLoss">{{ job.train_loss|default:"—" }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-gray-500 mb-1">Val Loss</div>
+                <div class="text-xl font-bold text-gray-900" id="valLoss">{{ job.val_loss|default:"—" }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-gray-500 mb-1">Elapsed Time</div>
+                <div class="text-xl font-bold text-gray-900" id="elapsedTime">{{ job.elapsed_time|default:"0:00" }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                <div class="text-sm text-gray-500 mb-1">Est. Remaining</div>
+                <div class="text-xl font-bold text-gray-900" id="remainingTime">{{ job.remaining_time|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Configuration Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 fade-in">
+        <div class="bg-white rounded-xl shadow-sm p-4 border">
+            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Model</div>
+            <div class="font-semibold text-lg text-gray-900">{{ job.config.model|upper }}</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border">
+            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Batch Size</div>
+            <div class="font-semibold text-lg text-gray-900">{{ job.config.batch_size }}</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border">
+            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Learning Rate</div>
+            <div class="font-semibold text-lg text-gray-900">{{ job.config.learning_rate }}</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border">
+            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Optimizer</div>
+            <div class="font-semibold text-lg text-gray-900">{{ job.config.optimizer|upper }}</div>
+        </div>
+    </div>
+    
+    <!-- Success Result -->
+    {% if job.status == 'completed' %}
+    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-6 fade-in">
+        <div class="flex items-start gap-4">
+            <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-xl font-semibold text-green-800 mb-3">Training Complete! 🎉</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-white/60 rounded-xl p-4 text-center">
+                        <div class="text-sm text-green-700 mb-1">Final Train Loss</div>
+                        <div class="text-2xl font-bold text-green-800">{{ job.train_loss }}</div>
+                    </div>
+                    <div class="bg-white/60 rounded-xl p-4 text-center">
+                        <div class="text-sm text-green-700 mb-1">Final Val Loss</div>
+                        <div class="text-2xl font-bold text-green-800">{{ job.val_loss }}</div>
+                    </div>
+                    <div class="bg-white/60 rounded-xl p-4 text-center">
+                        <div class="text-sm text-green-700 mb-1">Total Epochs</div>
+                        <div class="text-2xl font-bold text-green-800">{{ job.total_epochs }}</div>
+                    </div>
+                    <div class="bg-white/60 rounded-xl p-4 text-center">
+                        <div class="text-sm text-green-700 mb-1">Duration</div>
+                        <div class="text-2xl font-bold text-green-800">{{ job.duration|default:"—" }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2 px-4 py-2 bg-white/70 rounded-lg">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                        </svg>
+                        <code class="text-sm text-green-700">checkpoints/{{ job.job_id }}/</code>
+                    </div>
+                    <a href="#" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download Model
+                    </a>
+                    <a href="{% url 'demo' %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        </svg>
+                        Try in Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Error Result -->
+    {% if job.status == 'failed' %}
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6 fade-in">
+        <div class="flex items-start gap-4">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold text-red-800 mb-2">Training Failed</h3>
+                <p class="text-red-700 mb-4">{{ job.error|default:"An unknown error occurred during training." }}</p>
+                <div class="flex gap-3">
+                    <a href="{% url 'training' %}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition">
+                        Try Again
+                    </a>
+                    <a href="#" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-100 text-sm font-medium transition">
+                        View Documentation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Training Logs -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border fade-in">
+        <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <h2 class="font-semibold">Training Logs</h2>
+            </div>
+            {% if job.status == 'running' %}
+            <span class="flex items-center gap-2 text-xs text-gray-500">
+                <span class="relative flex h-2 w-2">
+                    <span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Auto-refreshing
+            </span>
+            {% endif %}
+        </div>
+        <div class="bg-gray-900 p-4 font-mono text-sm text-gray-300 h-96 overflow-y-auto scroll-smooth" id="logContainer">
+            {% for log in job.logs %}
+            <div class="log-line py-0.5 {% if 'Epoch' in log %}text-green-400{% elif 'Error' in log or 'Failed' in log %}text-red-400{% elif 'completed' in log or 'Completed' in log %}text-blue-400{% elif 'loss' in log|lower %}text-amber-400{% else %}text-gray-400{% endif %}">{{ log }}</div>
+            {% empty %}
+            <div class="text-gray-500 flex items-center gap-2">
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Waiting for logs...
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if job.status == 'running' %}
+<script>
+// Poll for updates
+const jobId = '{{ job.job_id }}';
+const logContainer = document.getElementById('logContainer');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const currentEpoch = document.getElementById('currentEpoch');
+const trainLoss = document.getElementById('trainLoss');
+const valLoss = document.getElementById('valLoss');
+
+async function updateStatus() {
+    try {
+        const response = await fetch(`/training/job/${jobId}/status/`);
+        const data = await response.json();
+        
+        // Update progress
+        progressBar.style.width = data.progress + '%';
+        progressText.textContent = data.progress + '%';
+        currentEpoch.textContent = data.current_epoch;
+        
+        if (data.train_loss) {
+            trainLoss.textContent = data.train_loss;
+            valLoss.textContent = data.val_loss || '—';
+        }
+        
+        // Update logs
+        logContainer.innerHTML = data.logs.map(log => {
+            let cls = 'text-gray-400';
+            if (log.includes('Epoch')) cls = 'text-green-400';
+            else if (log.includes('Error') || log.includes('Failed')) cls = 'text-red-400';
+            else if (log.includes('completed') || log.includes('Completed')) cls = 'text-blue-400';
+            else if (log.toLowerCase().includes('loss')) cls = 'text-amber-400';
+            return `<div class="log-line py-0.5 ${cls}">${log}</div>`;
+        }).join('');
+        
+        // Scroll to bottom
+        logContainer.scrollTop = logContainer.scrollHeight;
+        
+        // Reload if completed or failed
+        if (data.status !== 'running') {
+            window.location.reload();
+        }
+    } catch (e) {
+        console.error('Failed to fetch status:', e);
+    }
+}
+
+// Poll every 2 seconds
+setInterval(updateStatus, 2000);
+</script>
+{% endif %}
+{% endblock %}

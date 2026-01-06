@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Samples - {{ dataset.name }} - SUMBA{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'dataset_detail' dataset.uuid %}" class="text-purple-600 hover:text-purple-700 mb-4 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to {{ dataset.name }}
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">Add Samples</h1>
+        <p class="text-gray-600 mt-1">Select validated gesture samples to add to this dataset</p>
+    </div>
+    
+    <!-- Form -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Split Selection -->
+            <div class="mb-6 pb-6 border-b">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Assign to Split:</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="split" value="train" checked class="text-purple-600">
+                        <span>Training</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="split" value="validation" class="text-purple-600">
+                        <span>Validation</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="split" value="test" class="text-purple-600">
+                        <span>Test</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Sample Selection -->
+            {% if samples %}
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-gray-600">{{ samples|length }} validated samples available</span>
+                    <button type="button" onclick="toggleAll()" 
+                            class="text-sm text-purple-600 hover:text-purple-700">
+                        Select/Deselect All
+                    </button>
+                </div>
+                
+                <div class="max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="w-12 px-4 py-3 text-left">
+                                    <input type="checkbox" id="selectAll" onchange="toggleAll()">
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gloss</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transcript</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frames</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            {% for sample in samples %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3">
+                                    <input type="checkbox" name="samples" value="{{ sample.uuid }}" 
+                                           class="sample-checkbox text-purple-600">
+                                </td>
+                                <td class="px-4 py-3 font-medium">{{ sample.gloss }}</td>
+                                <td class="px-4 py-3 text-gray-600 text-sm">{{ sample.transcript|truncatewords:5|default:"-" }}</td>
+                                <td class="px-4 py-3">{{ sample.num_frames }}</td>
+                                <td class="px-4 py-3">{{ sample.duration_ms }}ms</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 pt-6 border-t">
+                <a href="{% url 'dataset_detail' dataset.uuid %}" 
+                   class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Add Selected Samples
+                </button>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No validated samples available</h3>
+                <p class="text-gray-600 mb-6">
+                    Record and validate some gesture samples first, then add them to datasets.
+                </p>
+                <a href="{% url 'gesture_capture' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Record New Gesture
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleAll() {
+    const checkboxes = document.querySelectorAll('.sample-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    const allChecked = [...checkboxes].every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    selectAll.checked = !allChecked;
+}
+</script>
+{% endblock %}
