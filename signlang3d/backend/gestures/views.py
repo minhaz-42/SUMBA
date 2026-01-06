@@ -67,6 +67,86 @@ def gesture_library(request):
 
 
 @login_required
+def review_dashboard(request):
+    """Staff reviewer dashboard for validating gestures."""
+    if not request.user.is_staff:
+        messages.error(request, 'You do not have permission to access the reviewer dashboard.')
+        return redirect('gesture_library')
+
+    qs = GestureSample.objects.select_related('language', 'uploaded_by').order_by('-created_at')
+
+    # Default to pending and needs_review if no status filter provided
+    status_filter = request.GET.get('status')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    else:
+        qs = qs.filter(status__in=[GestureSample.Status.PENDING, GestureSample.Status.NEEDS_REVIEW])
+
+    language = request.GET.get('language')
+    uploader = request.GET.get('uploader')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+
+    if language:
+        qs = qs.filter(language__code=language)
+    if uploader:
+        qs = qs.filter(uploaded_by__username__icontains=uploader)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    if search:
+        qs = qs.filter(Q(gloss__icontains=search) | Q(transcript__icontains=search))
+
+    paginator = Paginator(qs, 24)
+    page = request.GET.get('page', 1)
+    samples_page = paginator.get_page(page)
+
+    languages = Language.objects.all()
+
+    return render(request, 'gestures/review_dashboard.html', {
+        'samples': samples_page,
+        'languages': languages,
+        'current_language': language,
+        'search': search or '',
+        'status': status_filter,
+    })
+
+
+@login_required
+@require_POST
+def gesture_bulk_action(request):
+    """Handle bulk validate/reject/pending actions from reviewer dashboard."""
+    if not request.user.is_staff:
+        messages.error(request, 'Permission denied.')
+        return redirect('gesture_library')
+
+    action = request.POST.get('action')
+    uuids = request.POST.getlist('selected')
+
+    if not uuids:
+        messages.error(request, 'No samples selected.')
+        return redirect('review_dashboard')
+
+    samples = GestureSample.objects.filter(uuid__in=uuids)
+
+    if action == 'validate':
+        samples.update(status=GestureSample.Status.VALIDATED, validated_by=request.user, quality_score=0.85)
+        messages.success(request, f'Validated {samples.count()} sample(s).')
+    elif action == 'reject':
+        samples.update(status=GestureSample.Status.REJECTED, validated_by=request.user)
+        messages.warning(request, f'Marked {samples.count()} sample(s) as rejected.')
+    elif action == 'pending':
+        samples.update(status=GestureSample.Status.PENDING, validated_by=None)
+        messages.info(request, f'Set {samples.count()} sample(s) back to pending.')
+    else:
+        messages.error(request, 'Unknown action.')
+
+    return redirect('review_dashboard')
+
+
+@login_required
 def gesture_detail(request, uuid):
     """View details of a gesture sample."""
     sample = get_object_or_404(GestureSample.objects.select_related('language', 'uploaded_by'), uuid=uuid)

@@ -33,7 +33,7 @@ urlpatterns = [
     path('training/', include('training.urls')),
     
     # Frontend Pages
-    path('', TemplateView.as_view(template_name='landing.html'), name='landing'),
+    path('', views.landing, name='landing'),
     path('capture/', TemplateView.as_view(template_name='capture.html'), name='capture'),
     path('demo/', TemplateView.as_view(template_name='demo.html'), name='demo'),
     path('results/', TemplateView.as_view(template_name='results.html'), name='results'),

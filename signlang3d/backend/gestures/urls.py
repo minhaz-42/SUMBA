@@ -16,4 +16,6 @@ urlpatterns = [
     path('<uuid:uuid>/download/', views.gesture_download, name='gesture_download'),
     path('<uuid:uuid>/add-to-dataset/', views.add_sample_to_dataset, name='add_sample_to_dataset'),
     path('<uuid:uuid>/validate/', views.gesture_validate, name='gesture_validate'),
+    path('review/', views.review_dashboard, name='review_dashboard'),
+    path('bulk-action/', views.gesture_bulk_action, name='gesture_bulk_action'),
 ]

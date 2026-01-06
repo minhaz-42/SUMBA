@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Reviewer Dashboard - SUMBA{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <nav class="text-sm mb-4">
+        <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+        <span class="text-gray-400 mx-2">→</span>
+        <span class="text-gray-900">Reviewer Dashboard</span>
+    </nav>
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">Reviewer Dashboard</h1>
+            <p class="text-gray-600">Review pending gestures and perform bulk validation actions</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <input type="text" name="search" value="{{ search }}" placeholder="gloss or transcript"
+                       class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                <select name="language" class="w-full px-4 py-2 border rounded-lg">
+                    <option value="">All</option>
+                    {% for lang in languages %}
+                    <option value="{{ lang.code }}" {% if current_language == lang.code %}selected{% endif %}>{{ lang.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Uploader</label>
+                <input type="text" name="uploader" value="{{ request.GET.uploader|default:'' }}" placeholder="username"
+                       class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg">Filter</button>
+                <a href="{% url 'review_dashboard' %}" class="px-4 py-2 text-gray-600">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <form method="post" action="{% url 'gesture_bulk_action' %}">
+        {% csrf_token %}
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <select name="action" class="px-3 py-2 border rounded-lg">
+                        <option value="validate">Validate</option>
+                        <option value="reject">Reject</option>
+                        <option value="pending">Set Pending</option>
+                    </select>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Apply to Selected</button>
+                </div>
+                <div class="text-sm text-gray-500">Showing {{ samples.paginator.count }} sample(s)</div>
+            </div>
+
+            <div class="divide-y">
+                <div class="grid grid-cols-12 gap-4 p-4 text-sm font-medium text-gray-600 border-b">
+                    <div class="col-span-1">Select</div>
+                    <div class="col-span-3">Gloss / Transcript</div>
+                    <div class="col-span-2">Language</div>
+                    <div class="col-span-2">Uploader</div>
+                    <div class="col-span-1">Frames</div>
+                    <div class="col-span-2">Date</div>
+                    <div class="col-span-1">Status</div>
+                </div>
+
+                {% for s in samples %}
+                <div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50">
+                    <div class="col-span-1">
+                        <input type="checkbox" name="selected" value="{{ s.uuid }}" class="w-4 h-4">
+                    </div>
+                    <div class="col-span-3">
+                        <div class="font-semibold">{{ s.gloss }}</div>
+                        <div class="text-xs text-gray-500">{{ s.transcript|truncatechars:80 }}</div>
+                    </div>
+                    <div class="col-span-2">{{ s.language.code }}</div>
+                    <div class="col-span-2">{{ s.uploaded_by.username }}</div>
+                    <div class="col-span-1">{{ s.num_frames }}</div>
+                    <div class="col-span-2">{{ s.created_at|date:"M d" }}</div>
+                    <div class="col-span-1">
+                        {% if s.status == 'validated' %}
+                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Validated</span>
+                        {% elif s.status == 'pending' %}
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Pending</span>
+                        {% else %}
+                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">{{ s.status|capfirst }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-600">No samples to review.</div>
+                {% endfor %}
+            </div>
+
+            <div class="p-4 border-t flex items-center justify-between">
+                <div>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Apply to Selected</button>
+                </div>
+                <div>
+                    <nav class="inline-flex" aria-label="Pagination">
+                        {% if samples.has_previous %}
+                        <a href="?page={{ samples.previous_page_number }}" class="px-3 py-1 border rounded-l">Prev</a>
+                        {% endif %}
+                        <span class="px-3 py-1 border-t border-b">Page {{ samples.number }} of {{ samples.paginator.num_pages }}</span>
+                        {% if samples.has_next %}
+                        <a href="?page={{ samples.next_page_number }}" class="px-3 py-1 border rounded-r">Next</a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

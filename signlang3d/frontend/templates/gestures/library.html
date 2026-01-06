@@ -33,13 +33,24 @@
             <h1 class="text-3xl font-bold text-gray-900">Gesture Library</h1>
             <p class="text-gray-600 mt-1">Browse and manage recorded sign language gestures</p>
         </div>
-        <a href="{% url 'gesture_capture' %}" 
-           class="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition shadow-lg shadow-purple-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-            </svg>
-            Record New Gesture
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'gesture_capture' %}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Record New Gesture
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'review_dashboard' %}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/>
+                </svg>
+                Reviewer Dashboard
+            </a>
+            {% endif %}
+        </div>
     </div>
     
     <!-- Messages -->
