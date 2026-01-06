@@ -172,6 +172,19 @@ class GestureSample(models.Model):
     def duration_seconds(self) -> float:
         """Return duration in seconds."""
         return self.duration_ms / 1000.0
+    
+    @property
+    def is_validated(self) -> bool:
+        """Check if sample is validated."""
+        return self.status == self.Status.VALIDATED
+    
+    @is_validated.setter
+    def is_validated(self, value: bool):
+        """Set validation status."""
+        if value:
+            self.status = self.Status.VALIDATED
+        else:
+            self.status = self.Status.PENDING
 
 
 class JointFrame(models.Model):

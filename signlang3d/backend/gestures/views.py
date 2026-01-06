@@ -128,7 +128,15 @@ def gesture_edit(request, uuid):
         if language_code:
             sample.language = Language.objects.get(code=language_code)
         
-        sample.is_validated = request.POST.get('is_validated') == 'on'
+        # Handle validation status
+        is_validated = request.POST.get('is_validated') == 'on'
+        if is_validated:
+            sample.status = GestureSample.Status.VALIDATED
+            sample.validated_by = request.user
+        else:
+            sample.status = GestureSample.Status.PENDING
+            sample.validated_by = None
+        
         sample.save()
         
         messages.success(request, 'Gesture updated successfully.')
@@ -262,4 +270,69 @@ def add_sample_to_dataset(request, uuid):
     
     messages.success(request, f'Sample added to dataset "{dataset.name}".')
     return redirect('gesture_detail', uuid=uuid)
+
+
+@login_required
+@require_POST
+def gesture_validate(request, uuid):
+    """Validate or reject a gesture sample."""
+    sample = get_object_or_404(GestureSample, uuid=uuid)
+    
+    # Only allow staff or the uploader to validate
+    if not request.user.is_staff and sample.uploaded_by != request.user:
+        messages.error(request, "You don't have permission to validate this sample.")
+        return redirect('gesture_detail', uuid=uuid)
+    
+    action = request.POST.get('action', 'validate')
+    
+    if action == 'validate':
+        sample.status = 'validated'
+        sample.validated_by = request.user
+        sample.quality_score = 0.85  # Default quality score
+        messages.success(request, 'Sample validated successfully.')
+    elif action == 'reject':
+        sample.status = 'rejected'
+        sample.validated_by = request.user
+        messages.warning(request, 'Sample marked as rejected.')
+    elif action == 'pending':
+        sample.status = 'pending'
+        sample.validated_by = None
+        messages.info(request, 'Sample set back to pending.')
+    
+    sample.save()
+    return redirect('gesture_detail', uuid=uuid)
+
+
+@login_required
+@require_POST
+def gesture_validate_bulk(request):
+    """Validate multiple samples at once."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        uuids = data.get('uuids', [])
+        action = data.get('action', 'validate')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    if action == 'validate':
+        status = 'validated'
+    elif action == 'reject':
+        status = 'rejected'
+    else:
+        status = 'pending'
+    
+    updated = GestureSample.objects.filter(uuid__in=uuids).update(
+        status=status,
+        validated_by=request.user if status != 'pending' else None,
+        quality_score=0.85 if status == 'validated' else None
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'updated': updated,
+        'status': status
+    })
 

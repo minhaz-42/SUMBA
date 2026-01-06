@@ -65,10 +65,12 @@
                     <select name="dataset" required class="w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value="">Select a dataset...</option>
                         {% for dataset in datasets %}
-                        <option value="{{ dataset.uuid }}">{{ dataset.name }} ({{ dataset.total_samples }} samples)</option>
+                        <option value="{{ dataset.uuid }}" {% if dataset.validated_samples_count == 0 %}disabled{% endif %}>
+                            {{ dataset.name }} ({{ dataset.validated_samples_count }} validated{% if dataset.pending_samples_count > 0 %}, {{ dataset.pending_samples_count }} pending{% endif %})
+                        </option>
                         {% endfor %}
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Choose the dataset to train on</p>
+                    <p class="text-xs text-gray-500 mt-1">Only validated samples are used for training</p>
                 </div>
                 
                 <div>

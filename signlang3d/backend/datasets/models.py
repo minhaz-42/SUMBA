@@ -68,6 +68,23 @@ class Dataset(models.Model):
     def __str__(self):
         return f"{self.name} v{self.version}"
     
+    @property
+    def validated_samples_count(self):
+        """Get count of validated samples dynamically."""
+        from gestures.models import GestureSample
+        return self.samples.filter(status=GestureSample.Status.VALIDATED).count()
+    
+    @property
+    def pending_samples_count(self):
+        """Get count of pending samples dynamically."""
+        from gestures.models import GestureSample
+        return self.samples.filter(status=GestureSample.Status.PENDING).count()
+    
+    @property
+    def all_samples_count(self):
+        """Get total sample count dynamically."""
+        return self.samples.count()
+    
     def update_statistics(self):
         """Recalculate dataset statistics from samples."""
         from gestures.models import GestureSample
