@@ -21,37 +21,48 @@ from datasets.models import Dataset
 def gesture_library(request):
     """Browse all gesture samples."""
     samples = GestureSample.objects.select_related('language', 'uploaded_by').order_by('-created_at')
-    
+
     # Filters
     language = request.GET.get('language')
     search = request.GET.get('search')
     my_only = request.GET.get('my_only')
-    
+
+    filtered_samples = samples
     if language:
-        samples = samples.filter(language__code=language)
-    
+        filtered_samples = filtered_samples.filter(language__code=language)
+
     if search:
-        samples = samples.filter(
+        filtered_samples = filtered_samples.filter(
             Q(gloss__icontains=search) | Q(transcript__icontains=search)
         )
-    
+
     if my_only == '1':
-        samples = samples.filter(uploaded_by=request.user)
-    
+        filtered_samples = filtered_samples.filter(uploaded_by=request.user)
+
     # Pagination
-    paginator = Paginator(samples, 24)
+    paginator = Paginator(filtered_samples, 24)
     page = request.GET.get('page', 1)
     samples_page = paginator.get_page(page)
-    
+
+    # Stats (always from filtered set)
+    total_count = filtered_samples.count()
+    validated_count = filtered_samples.filter(status=GestureSample.Status.VALIDATED).count()
+    my_count = filtered_samples.filter(uploaded_by=request.user).count()
+    languages_count = Language.objects.count()
+
     # Get all languages for filter
     languages = Language.objects.all()
-    
+
     return render(request, 'gestures/library.html', {
         'samples': samples_page,
         'languages': languages,
         'current_language': language,
         'search': search or '',
         'my_only': my_only == '1',
+        'total_count': total_count,
+        'validated_count': validated_count,
+        'my_count': my_count,
+        'languages_count': languages_count,
     })
 
 
