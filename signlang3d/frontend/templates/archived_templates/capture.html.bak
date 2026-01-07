@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture Gesture - SUMBA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1',
+                        'primary-dark': '#4f46e5',
+                        'secondary': '#10b981',
+                        'accent': '#f59e0b',
+                        'dark': '#1e1b4b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .recording { animation: recording-pulse 1s ease-in-out infinite; }
+        @keyframes recording-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
+        #skeleton-canvas { image-rendering: pixelated; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-dark">SUMBA</span>
+                </a>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">Capture Mode</span>
+                    <a href="/demo/" class="px-4 py-2 text-primary hover:bg-primary/10 rounded-lg transition">Go to Demo</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Video & Skeleton Panel -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Camera Feed -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Camera Feed</h2>
+                        <div id="status-indicator" class="flex items-center text-sm">
+                            <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
+                            <span class="text-gray-600">Disconnected</span>
+                        </div>
+                    </div>
+                    <div class="relative aspect-video bg-gray-900">
+                        <video id="video-feed" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                        <canvas id="skeleton-overlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                        
+                        <!-- Recording Indicator -->
+                        <div id="recording-indicator" class="hidden absolute top-4 right-4 flex items-center bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium recording">
+                            <span class="w-2 h-2 bg-white rounded-full mr-2"></span>
+                            REC
+                        </div>
+
+                        <!-- Frame Counter -->
+                        <div class="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-lg text-sm font-mono">
+                            Frame: <span id="frame-count">0</span> / 150
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <div class="flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex gap-3">
+                            <button id="btn-connect" class="px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                                Connect Camera
+                            </button>
+                            <button id="btn-record" disabled class="px-6 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="8"></circle>
+                                </svg>
+                                Start Recording
+                            </button>
+                            <button id="btn-stop" disabled class="px-6 py-3 bg-gray-500 text-white font-medium rounded-xl hover:bg-gray-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                                </svg>
+                                Stop
+                            </button>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-save" disabled class="flex-1 px-6 py-3 bg-secondary text-white font-medium rounded-xl hover:bg-green-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                                Save Sample
+                            </button>
+                            <button id="btn-lip" type="button" class="px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700">Run Lip Decoder</button>
+                        </div>
+                        <div id="lip-result" class="mt-3 text-sm text-gray-700 hidden"></div>
+                    </div>
+                </div>

@@ -220,6 +220,35 @@ class JointFrame(models.Model):
     
     def __str__(self):
         return f"Frame {self.frame_index} of Sample {self.sample.uuid}"
+
+
+class FaceFrame(models.Model):
+    """A single frame of face landmarks or mouth crop data."""
+
+    sample = models.ForeignKey(
+        GestureSample,
+        on_delete=models.CASCADE,
+        related_name='face_frames'
+    )
+    frame_index = models.PositiveIntegerField()
+    timestamp_ms = models.PositiveIntegerField()
+
+    # Landmarks for the face (list of {x,y,z})
+    landmarks = models.JSONField()
+
+    # Optional mouth crop path (if sent as file)
+    mouth_crop = models.ImageField(upload_to='gestures/face_crops/', null=True, blank=True)
+
+    class Meta:
+        db_table = 'face_frames'
+        ordering = ['sample', 'frame_index']
+        unique_together = ['sample', 'frame_index']
+        indexes = [
+            models.Index(fields=['sample', 'frame_index']),
+        ]
+
+    def __str__(self):
+        return f"FaceFrame {self.frame_index} of Sample {self.sample.uuid}"
     
     def get_joint_position(self, joint_name: str) -> dict | None:
         """Get position of a specific joint."""

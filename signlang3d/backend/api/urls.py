@@ -50,6 +50,17 @@ router.register(r'evaluations', EvaluationResultViewSet, basename='evaluation')
 
 # Inference routes
 router.register(r'inference', InferenceViewSet, basename='inference')
+
+from inference.views import LipInferenceView
+
+# Add a simple path for lip inference (mock)
+from django.urls import path
+
+extra_urls = [
+    path('inference/lip/', LipInferenceView.as_view(), name='lip_inference'),
+]
+
+urlpatterns = router.urls + extra_urls
 router.register(r'deployments', ModelDeploymentViewSet, basename='deployment')
 
 urlpatterns = [

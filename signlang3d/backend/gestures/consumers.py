@@ -281,10 +281,97 @@ class InferenceConsumer(AsyncJsonWebsocketConsumer):
         language = content.get('language', 'ASL')
         
         logger.info(f"Processing batch: {len(frames)} frames, model={model}, lang={language}")
-        
+
+        # Reject empty batches early
+        def frames_have_landmarks(frames_list):
+            if not frames_list:
+                return False
+            for f in frames_list:
+                if isinstance(f, dict):
+                    if (f.get('hands') and len(f.get('hands')) > 0) or (f.get('face') and len(f.get('face')) > 0):
+                        return True
+                elif isinstance(f, list) and len(f) > 0:
+                    return True
+            return False
+
+        if not frames_have_landmarks(frames):
+            await self.send_json({
+                'type': 'error',
+                'message': 'No frames with landmarks provided for inference.'
+            })
+            return
+
+        # Reject low-motion batches (avoid spurious translations from background noise)
+        def frames_motion(frames_list):
+            # compute centroid per frame
+            centroids = []
+            for f in frames_list:
+                xs, ys = [], []
+                if isinstance(f, dict):
+                    hands = f.get('hands', [])
+                    face = f.get('face', [])
+                    for h in hands:
+                        for lm in h.get('landmarks', []):
+                            xs.append(lm.get('x', 0.0)); ys.append(lm.get('y', 0.0))
+                    for lm in face:
+                        xs.append(lm.get('x', 0.0)); ys.append(lm.get('y', 0.0))
+                elif isinstance(f, list):
+                    for lm in f:
+                        xs.append(lm.get('x', 0.0)); ys.append(lm.get('y', 0.0))
+                if xs:
+                    centroids.append((sum(xs)/len(xs), sum(ys)/len(ys)))
+            if len(centroids) < 2:
+                return 0.0
+            total = 0.0
+            for i in range(1, len(centroids)):
+                dx = centroids[i][0] - centroids[i-1][0]
+                dy = centroids[i][1] - centroids[i-1][1]
+                total += (dx*dx + dy*dy) ** 0.5
+            return total / (len(centroids)-1)
+
+        motion = frames_motion(frames)
+        MOTION_THRESH = 0.001
+
+        # Compute average landmark count per frame
+        total_landmarks = 0
+        for f in frames:
+            if isinstance(f, dict):
+                hands = f.get('hands', [])
+                face = f.get('face', [])
+                for h in hands:
+                    total_landmarks += len(h.get('landmarks', []))
+                total_landmarks += len(face)
+            elif isinstance(f, list):
+                total_landmarks += len(f)
+        avg_landmarks = total_landmarks / max(1, len(frames))
+
+        # Allow inference when there are many landmarks even if motion is small
+        LANDMARKS_ALLOW = 12
+        if motion < MOTION_THRESH and avg_landmarks < LANDMARKS_ALLOW:
+            await self.send_json({
+                'type': 'error',
+                'message': f'Low motion ({motion:.5f}) and insufficient landmarks ({avg_landmarks:.1f}) - skipping inference'
+            })
+            return
+
+        if motion < MOTION_THRESH:
+            logger.info(f"Low motion ({motion:.5f}) but sufficient landmarks ({avg_landmarks:.1f}), proceeding")
+
+
         # Simulate processing delay (would be real ML inference)
         await asyncio.sleep(0.5)
-        
+
+        # Attempt to run lip decoder on face frames, if present
+        lip_note = None
+        try:
+            from inference.decoder import predict_from_face_frames
+            face_frames = [f.get('face') for f in frames if isinstance(f, dict) and f.get('face')]
+            lip_pred = predict_from_face_frames(face_frames) if any(face_frames) else None
+            if lip_pred:
+                lip_note = f"Lip hint: {lip_pred}"
+        except Exception as e:
+            logger.debug(f"Lip decoder error: {e}")
+
         # Get demo translation
         translations = self.DEMO_TRANSLATIONS.get(language, self.DEMO_TRANSLATIONS['ASL'])
         translation_idx = self.inference_count % len(translations)
@@ -301,6 +388,17 @@ class InferenceConsumer(AsyncJsonWebsocketConsumer):
                 'score': confidence - random.uniform(0.1, 0.25)
             })
         
+        # Build beam log
+        beam_log = [
+            f"Received {len(frames)} frames",
+            f"Model: {model} encoder",
+            f"Running beam search (width=5)...",
+            f"Top hypothesis: \"{translation}\" (score: {confidence:.3f})",
+        ]
+        if lip_note:
+            beam_log.append(lip_note)
+        beam_log.append("Decoding complete")
+
         # Send translation response
         await self.send_json({
             'type': 'translation',
@@ -310,13 +408,8 @@ class InferenceConsumer(AsyncJsonWebsocketConsumer):
             'alternatives': alternatives,
             'frames_processed': len(frames),
             'model_used': model,
-            'beam_log': [
-                f"Received {len(frames)} frames",
-                f"Model: {model} encoder",
-                f"Running beam search (width=5)...",
-                f"Top hypothesis: \"{translation}\" (score: {confidence:.3f})",
-                "Decoding complete"
-            ]
+            'beam_log': beam_log,
+            'lip_prediction': lip_pred if lip_pred else None
         })
         
         logger.info(f"Sent translation: {translation}")

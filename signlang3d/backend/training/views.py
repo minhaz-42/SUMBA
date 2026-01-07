@@ -71,6 +71,8 @@ def simulate_training(job):
     job.logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Batch size: {job.config.get('batch_size', 32)}")
     job.logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Learning rate: {job.config.get('learning_rate', 0.001)}")
     job.logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Epochs: {job.total_epochs}")
+    if job.config.get('use_lips'):
+        job.logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Lip model: {job.config.get('lip_model')}")
     job.logs.append("")
     
     train_loss = 2.5
@@ -136,6 +138,8 @@ def start_training(request):
         'learning_rate': float(request.POST.get('learning_rate', 0.001)),
         'optimizer': request.POST.get('optimizer', 'adam'),
         'hidden_dim': int(request.POST.get('hidden_dim', 256)),
+        'use_lips': request.POST.get('use_lips') == 'on',
+        'lip_model': request.POST.get('lip_model', 'landmark')
     }
     
     # Generate job ID

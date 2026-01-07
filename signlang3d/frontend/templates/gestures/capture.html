@@ -170,17 +170,29 @@
                         <dt class="text-xs text-amber-600 font-medium uppercase">Hands</dt>
                         <dd id="stat-hands" class="text-2xl font-bold text-amber-700 mt-1">0</dd>
                     </div>
+                    <div class="text-center p-4 bg-purple-50 rounded-xl">
+                        <dt class="text-xs text-purple-600 font-medium uppercase">Face</dt>
+                        <dd id="stat-face" class="text-2xl font-bold text-purple-700 mt-1">0</dd>
+                    </div>
                 </dl>
             </div>
             
-            <!-- Save Button -->
-            <button id="btn-save" disabled 
-                    class="w-full py-4 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-200 disabled:shadow-none">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Save Gesture
-            </button>
+            <!-- Save & Lip Inference Buttons -->
+            <div class="flex gap-3">
+                <button id="btn-save" disabled 
+                        class="flex-1 py-4 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-200 disabled:shadow-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Gesture
+                </button>
+
+                <button id="btn-lip" type="button" title="Run Lip Decoder" class="py-4 px-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h6m-6 5h8"/></svg>
+                </button>
+            </div>
+
+            <div id="lip-result" class="mt-3 text-sm text-gray-700 hidden"></div>
             
             <!-- Recent Recordings -->
             <div class="bg-white rounded-2xl shadow-sm p-6 border fade-in">
@@ -207,6 +219,7 @@
 {% block scripts %}
 <!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     
@@ -227,6 +240,8 @@
         
         // State
         let hands = null;
+        let face = null;
+        let latestFaceLandmarks = null;
         let camera = null;
         let isRecording = false;
         let frameBuffer = [];
@@ -250,6 +265,18 @@
             });
             
             hands.onResults(onResults);
+            
+            // Initialize FaceMesh
+            face = new FaceMesh({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+            face.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            face.onResults(onFaceResults);
         }
         
         // Handle hand detection results
@@ -267,29 +294,89 @@
                     drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#10b981', lineWidth: 2});
                     drawLandmarks(ctx, landmarks, {color: '#6366f1', lineWidth: 1, radius: 4});
                 }
-                
-                // Record frame if recording
-                if (isRecording) {
-                    const frameData = {
-                        timestamp: Date.now() - recordingStartTime,
-                        hands: results.multiHandLandmarks.map((landmarks, idx) => ({
-                            handedness: results.multiHandedness[idx]?.label || 'Unknown',
-                            landmarks: landmarks.map(lm => ({
-                                x: lm.x,
-                                y: lm.y,
-                                z: lm.z
-                            }))
-                        }))
-                    };
-                    
-                    frameBuffer.push(frameData);
-                    updateStats();
-                }
             } else {
                 gestureBox.classList.add('hidden');
                 document.getElementById('stat-hands').textContent = '0';
             }
+
+            // Draw face landmarks if available
+            if (latestFaceLandmarks && latestFaceLandmarks.length > 0) {
+                document.getElementById('stat-face').textContent = latestFaceLandmarks.length;
+                for (const lm of latestFaceLandmarks) {
+                    const x = lm.x * canvas.width;
+                    const y = lm.y * canvas.height;
+                    ctx.fillStyle = '#a78bfa';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1.8, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            } else {
+                document.getElementById('stat-face').textContent = '0';
+            }
+
+            // Record frame if recording (include both hands and face landmarks)
+            if (isRecording) {
+                const frameData = {
+                    timestamp: Date.now() - recordingStartTime,
+                    hands: (results.multiHandLandmarks || []).map((landmarks, idx) => ({
+                        handedness: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].label : 'Unknown',
+                        landmarks: landmarks.map(lm => ({ x: lm.x, y: lm.y, z: lm.z }))
+                    })),
+                    face: latestFaceLandmarks ? latestFaceLandmarks.map(lm => ({ x: lm.x, y: lm.y, z: lm.z })) : []
+                };
+
+                frameBuffer.push(frameData);
+                updateStats();
+            }
         }
+
+        // Handle face results
+        function onFaceResults(results) {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                latestFaceLandmarks = results.multiFaceLandmarks[0];
+            } else {
+                latestFaceLandmarks = null;
+            }
+        }
+
+        // Run lip decoder on recent frames
+        document.getElementById('btn-lip').addEventListener('click', async () => {
+            const lipResult = document.getElementById('lip-result');
+            lipResult.classList.add('hidden');
+            lipResult.textContent = '';
+
+            // Collect last N frames of face landmarks
+            const faceFrames = frameBuffer.map(f => f.face).filter(f => f && f.length > 0);
+            if (!faceFrames.length) {
+                lipResult.textContent = 'No face landmarks available to run lip decoder.';
+                lipResult.classList.remove('hidden');
+                return;
+            }
+
+            lipResult.textContent = 'Running lip decoder...';
+            lipResult.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/inference/lip/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ face_frames: faceFrames })
+                });
+
+                const data = await response.json();
+                if (data.predicted_text) {
+                    lipResult.innerHTML = `<strong>Prediction:</strong> ${data.predicted_text}`;
+                } else {
+                    lipResult.textContent = data.note || 'No prediction available.';
+                }
+            } catch (err) {
+                lipResult.textContent = 'Lip decoder request failed: ' + err.message;
+            }
+        });
         
         function updateStats() {
             document.getElementById('stat-frames').textContent = frameBuffer.length;
@@ -333,6 +420,7 @@
                 camera = new Camera(video, {
                     onFrame: async () => {
                         await hands.send({ image: video });
+                        if (face) await face.send({ image: video });
                     },
                     width: 640,
                     height: 480

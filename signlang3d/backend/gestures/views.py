@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from .models import GestureSample, JointFrame, Language
+from .models import GestureSample, JointFrame, FaceFrame, Language
 from datasets.models import Dataset
 
 
@@ -288,19 +288,33 @@ def gesture_save_api(request):
         uploaded_by=request.user,
     )
     
-    # Create joint frames
+    # Create joint frames and face frames
     joint_frames = []
+    face_frames = []
     for idx, frame in enumerate(frames):
+        timestamp = frame.get('timestamp', idx * (1000 // fps))
         joint_frames.append(JointFrame(
             sample=sample,
             frame_index=idx,
-            timestamp_ms=frame.get('timestamp', idx * (1000 // fps)),
+            timestamp_ms=timestamp,
             joints_data=frame.get('hands', frame),
             confidence_scores=frame.get('confidence')
         ))
-    
+
+        # Face landmarks (if present)
+        face_landmarks = frame.get('face')
+        if face_landmarks:
+            face_frames.append(FaceFrame(
+                sample=sample,
+                frame_index=idx,
+                timestamp_ms=timestamp,
+                landmarks=face_landmarks
+            ))
+
     JointFrame.objects.bulk_create(joint_frames)
-    
+    if face_frames:
+        FaceFrame.objects.bulk_create(face_frames)
+
     # Update user stats if researcher
     if hasattr(request.user, 'researcher_profile'):
         request.user.researcher_profile.samples_uploaded += 1
