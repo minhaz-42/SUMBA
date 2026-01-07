@@ -12,8 +12,8 @@ class InferenceConsumerMotionTest(TransactionTestCase):
         # Consume initial connection message
         await comm.receive_json_from()
 
-        # Create frames with almost no motion (same centroid)
-        frame = {'hands':[{'landmarks':[{'x':0.5,'y':0.5,'z':0} for _ in range(21)]}], 'face':[{'x':0.5,'y':0.5,'z':0} for _ in range(468)]}
+        # Create frames with almost no motion and few landmarks (same centroid)
+        frame = {'hands':[{'landmarks':[{'x':0.5,'y':0.5,'z':0} for _ in range(1)]}], 'face':[]}
         frames = [frame for _ in range(30)]
 
         await comm.send_json_to({'type':'inference','request_id':'m1','model':'hybrid','language':'ASL','frames':frames})
