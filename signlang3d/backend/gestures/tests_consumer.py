@@ -10,6 +10,9 @@ class InferenceConsumerEmptyFramesTest(TransactionTestCase):
         connected, _ = await comm.connect()
         self.assertTrue(connected)
 
+        # Consume initial connection message
+        await comm.receive_json_from()
+
         # Send a batch with empty frames
         await comm.send_json_to({'type': 'inference', 'request_id': 'test1', 'model': 'hybrid', 'language': 'ASL', 'frames': []})
         response = await comm.receive_json_from()

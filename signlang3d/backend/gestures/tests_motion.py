@@ -9,6 +9,9 @@ class InferenceConsumerMotionTest(TransactionTestCase):
         connected, _ = await comm.connect()
         self.assertTrue(connected)
 
+        # Consume initial connection message
+        await comm.receive_json_from()
+
         # Create frames with almost no motion (same centroid)
         frame = {'hands':[{'landmarks':[{'x':0.5,'y':0.5,'z':0} for _ in range(21)]}], 'face':[{'x':0.5,'y':0.5,'z':0} for _ in range(468)]}
         frames = [frame for _ in range(30)]
