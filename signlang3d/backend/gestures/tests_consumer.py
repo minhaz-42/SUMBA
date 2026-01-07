@@ -6,7 +6,7 @@ import asyncio
 
 class InferenceConsumerEmptyFramesTest(TransactionTestCase):
     async def _run(self):
-        comm = WebsocketCommunicator(application, '/ws/gesture/inference/')
+        comm = WebsocketCommunicator(application, '/ws/gesture/inference/', headers=[(b'origin', b'http://testserver')])
         connected, _ = await comm.connect()
         self.assertTrue(connected)
 
