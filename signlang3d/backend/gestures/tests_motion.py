@@ -20,4 +20,4 @@ class InferenceConsumerMotionTest(TransactionTestCase):
         await comm.disconnect()
 
     def test_low_motion_rejected(self):
-        return asyncio.get_event_loop().run_until_complete(self._run())
+        return asyncio.run(self._run())
