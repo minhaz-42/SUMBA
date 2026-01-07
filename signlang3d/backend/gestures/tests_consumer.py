@@ -1,7 +1,7 @@
 from channels.testing import WebsocketCommunicator
 from django.test import TransactionTestCase
 from django.conf import settings
-from signlang3d.asgi import application
+from core.asgi import application
 import asyncio
 
 class InferenceConsumerEmptyFramesTest(TransactionTestCase):

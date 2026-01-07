@@ -66,6 +66,9 @@ router.register(r'deployments', ModelDeploymentViewSet, basename='deployment')
 urlpatterns = [
     # Router URLs
     path('', include(router.urls)),
+
+    # Lip inference (demo endpoint)
+    path('inference/lip/', LipInferenceView.as_view(), name='lip_inference'),
     
     # Utility endpoints
     path('status/', SystemStatusView.as_view(), name='system-status'),

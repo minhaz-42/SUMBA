@@ -1,6 +1,6 @@
 from channels.testing import WebsocketCommunicator
 from django.test import TransactionTestCase
-from signlang3d.asgi import application
+from core.asgi import application
 import asyncio
 
 class InferenceConsumerMotionTest(TransactionTestCase):
